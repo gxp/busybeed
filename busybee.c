@@ -7,21 +7,21 @@
 
 #include "busybee.h"
 
-int main() {
+int main(int argc, char *argv[]) {
 
-
+	// Load config
+	char *config = get_conf();
+	puts(config);
 
 	// Start daemon fork here
 
 
 
 	// Serial
-	int test;
-	test = open_port();
+	char *test;
+//	test = get_conf();
 
-
-
-
+//puts(test);
 
 
 

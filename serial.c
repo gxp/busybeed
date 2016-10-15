@@ -7,19 +7,26 @@
 
 #include "busybee.h"
 
-int get_conf() {
+char *devices, *device[6];
 
-	char conf_r[255];
+char *get_conf() {
 	long fsize;
-	FILE *conf;
-
-	*conf= fopen("/etc/busybee.conf", "r");
-	fseek(conf, 0, SEEK_END);
-	fsize; = ftell(conf);
-	fseek(conf, 0, SEEK_SET);
-
-	fclose(conf);
+	const char *c_file = "/etc/busybee.conf";
+	char *c_read = "0";
+	if (access(c_file, F_OK) != -1) {
+		FILE *c = fopen(c_file, "r");
+		fseek(c, 0, SEEK_END);
+		fsize = ftell(c);
+		fseek(c, 0, SEEK_SET);
+		c_read = malloc(fsize+1);
+		fread(c_read, fsize, 1, c);
+		fclose(c);
+		return c_read;
+	} else {
+		exit(EXIT_FAILURE);
+	}
 }
+
 int open_port() {
 
 //	puts("!!!Hello World!!!"); /* prints !!!Hello World!!! */

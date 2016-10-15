@@ -22,8 +22,6 @@ int get_conf() {
 }
 int open_port() {
 
-
-
-	puts("!!!Hello World!!!"); /* prints !!!Hello World!!! */
+//	puts("!!!Hello World!!!"); /* prints !!!Hello World!!! */
 	return 0;
 }

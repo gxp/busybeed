@@ -16,8 +16,7 @@ int main(void) {
 
 
 	// Serial
-	int test;
-	test = open_port(void);
+	int test = open_port(void);
 
 
 

@@ -17,4 +17,10 @@
 
 //pseudos
 
-int open_port(void);
+// busybee.c
+
+// sockets.c
+
+// serial.c
+int get_conf();
+int open_port();

@@ -7,7 +7,7 @@
 
 #include "busybee.h"
 
-int open_port(void) {
+int open_port() {
 
 
 

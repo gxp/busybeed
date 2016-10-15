@@ -7,7 +7,7 @@
 
 #include "busybee.h"
 
-int main(void) {
+int main() {
 
 
 
@@ -16,7 +16,8 @@ int main(void) {
 
 
 	// Serial
-	int test = open_port(void);
+	int test;
+	test = open_port();
 
 
 

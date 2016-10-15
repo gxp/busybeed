@@ -19,9 +19,9 @@
 //pseudos
 
 // busybee.c
+char *get_conf();
 
 // sockets.c
 
 // serial.c
-char *get_conf();
 int open_port();

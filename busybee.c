@@ -7,6 +7,8 @@
 
 #include "busybee.h"
 
+char *devices, *device[6];
+
 int main(int argc, char *argv[]) {
 
 	// Load config
@@ -18,12 +20,23 @@ int main(int argc, char *argv[]) {
 
 
 	// Serial
-	char *test;
-//	test = get_conf();
 
-//puts(test);
+}
 
-
-
-
+char *get_conf() {
+	long fsize;
+	const char *c_file = "/etc/busybee.conf";
+	char *c_read = "0";
+	if (access(c_file, F_OK) != -1) {
+		FILE *c = fopen(c_file, "r");
+		fseek(c, 0, SEEK_END);
+		fsize = ftell(c);
+		fseek(c, 0, SEEK_SET);
+		c_read = malloc(fsize+1);
+		fread(c_read, fsize, 1, c);
+		fclose(c);
+		return c_read;
+	} else {
+		exit(EXIT_FAILURE);
+	}
 }

@@ -8,6 +8,22 @@
 #include "busybee.h"
 
 int main(void) {
-	puts("!!!Hello World!!!"); /* prints !!!Hello World!!! */
-	return EXIT_SUCCESS;
+
+
+
+	// Start daemon fork here
+
+
+
+	// Serial
+	int test;
+	test = open_port(void);
+
+
+
+
+
+
+
+
 }

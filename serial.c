@@ -6,3 +6,11 @@
  */
 
 #include "busybee.h"
+
+int open_port(void) {
+
+
+
+	puts("!!!Hello World!!!"); /* prints !!!Hello World!!! */
+	return 0;
+}

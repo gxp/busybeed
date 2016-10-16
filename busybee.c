@@ -13,6 +13,9 @@ int main(int argc, char *argv[]) {
 
 	// Load config
 	char *config = get_conf();
+
+//strsep for split of config
+
 	puts(config);
 
 	// Start daemon fork here

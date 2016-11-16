@@ -7,16 +7,19 @@
 
 #include "busybee.h"
 
-char *devices, *device[6];
+
+extern int		*parse_config(const char *);
+
+//char *devices, *device[6];
 
 int main(int argc, char *argv[]) {
-
+printf("Hello");
 	// Load config
-	char *config = get_conf();
+//	char *config = get_conf();
 
 //strsep for split of config
 
-	puts(config);
+//	puts(config);
 
 	// Start daemon fork here
 
@@ -26,6 +29,8 @@ int main(int argc, char *argv[]) {
 
 }
 
+
+/*
 char *get_conf() {
 	long fsize;
 	const char *c_file = "/etc/busybee.conf";
@@ -43,3 +48,4 @@ char *get_conf() {
 		exit(EXIT_FAILURE);
 	}
 }
+*/

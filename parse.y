@@ -1,6 +1,6 @@
-/* $OpenBSD: parse.y,v 1.19 2016/06/27 15:41:17 tedu Exp $ */
+/* $OpenBSD: parse.y,v 1.19 2016/11/16 15:41:17 baseprime Exp $ */
 /*
- * Copyright (c) 2015 Ted Unangst <tedu@openbsd.org>
+ * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.com>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -17,17 +17,12 @@
 
 /* c declarations */
 %{
-
-
-#include "busybee.h"
-
 #include <sys/types.h>
 #include <sys/queue.h>
 #include <sys/stat.h>
 #include <limits.h>
-
 #include <syslog.h>
-
+#include "busybee.h"
 
 
 
@@ -57,11 +52,10 @@ int		 lgetc(int);
 int		 lungetc(int);
 int		 findeol(void);
 
-
 int		*parse_config(const char *);
 
-
 TAILQ_HEAD(symhead, sym)	 symhead = TAILQ_HEAD_INITIALIZER(symhead);
+
 struct sym {
 	TAILQ_ENTRY(sym)	 entry;
 	int			 used;
@@ -69,6 +63,7 @@ struct sym {
 	char			*nam;
 	char			*val;
 };
+
 int		 symset(const char *, const char *, int);
 char		*symget(const char *);
 
@@ -93,17 +88,81 @@ typedef struct {
 
 /* grammar rules */
 %%
+grammar		: /* empty */
+		| grammar '\n'
+		| grammar main '\n'
+		| grammar device '\n'
+		| grammar error '\n'		{ file->errors++; }
+		;
 
-grammar			:/* empty */
-			| grammar '\n'
-;
+optnl		: '\n' optnl
+		|
+		;
 
+nl		: '\n' optnl
+		;
 
+main		: DEFAULT PORT NUMBER {
+			printf("Default port: %i\n", $3);
+		}
+		;
 
+deviceopts2	: deviceopts2 deviceopts1
+		| deviceopts1
+		;
 
+deviceopts1	: LISTEN STRING PORT NUMBER {
+			printf("Listen on port: %i\n", $4);
+		}
+		| LOCATION STRING {
+			printf("Device: %s\n", $2);
+		}
+		| BAUD NUMBER {
+			printf("Baud: %i\n", $2);
+		}
+		| DATA NUMBER {
+			printf("Data: %i\n", $2);
+		}
+		| PARITY STRING {
+			printf("Parity: %s\n", $2);
+		}
+		| STOP NUMBER {
+			printf("Stop: %i\n", $2);
+		}
+		| HARDWARE NUMBER {
+			printf("Hardware: %i\n", $2);
+		}
+		| PASSWORD STRING {
+			printf("Password: %s\n\n", $2);
+		}
+		| device nl
+		| error nl
+		;
 
-
-
+device		: DEVICE STRING	 optnl '{' optnl {
+			printf("\n\nOptions for device %s\n", $2);
+		}
+			deviceopts2 '}' {
+			//TAILQ_INSERT_TAIL(&changers, curchanger, entry);
+			//curchanger = NULL;
+		}
+		;
+/*
+grammar		: /* empty 
+		| grammar '\n'
+		| grammar main '\n'
+		| grammar device '\n'
+		| grammar error '\n'		{ file->errors++; }
+		;
+main		: DEFAULT PORT NUMBER {
+			printf("%i\n",$3);
+		}
+		;
+device		: DEVICE STRING {
+			printf("%s\n",$2);
+		}
+		;
+*/
 %%
 
 /* additional c code */

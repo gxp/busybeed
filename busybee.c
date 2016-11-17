@@ -8,13 +8,13 @@
 #include "busybee.h"
 
 
-extern int		*parse_config(const char *);
-extern	char *__progname;	/* from crt0.o */
+extern	char		*parse_config(const char *);
+extern	char		*__progname;	/* from crt0.o */
 
 //char *devices, *device[6];
 
 int main(int argc, char *argv[]) {
-printf("Hello, parsing config!\n\n");
+
 
 *parse_config(PATH_CONF);
 

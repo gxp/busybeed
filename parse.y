@@ -52,8 +52,8 @@ int		 lgetc(int);
 int		 lungetc(int);
 int		 findeol(void);
 
-int		*parse_config(const char *);
-
+char		*parse_config(const char *);
+int		default_port = 0;
 TAILQ_HEAD(symhead, sym)	 symhead = TAILQ_HEAD_INITIALIZER(symhead);
 
 struct sym {
@@ -63,6 +63,25 @@ struct sym {
 	char			*nam;
 	char			*val;
 };
+
+struct device			*new_device(char *);
+
+struct device {
+	TAILQ_ENTRY(device)	 entry;
+	char			*name;
+	int			 port;
+	char			*devicelocation;
+	int			 baud;
+	int			 databits;
+	char			*parity;
+	int			 stopbits;
+	int			 hwctrl;
+	char			*password;
+};
+
+TAILQ_HEAD(devices, device)	 devices;
+
+struct device			*currentdevice;
 
 int		 symset(const char *, const char *, int);
 char		*symget(const char *);
@@ -92,7 +111,7 @@ grammar		: /* empty */
 		| grammar '\n'
 		| grammar main '\n'
 		| grammar device '\n'
-		| grammar error '\n'		{ file->errors++; }
+		| grammar error '\n' { file->errors++; }
 		;
 
 optnl		: '\n' optnl
@@ -103,66 +122,36 @@ nl		: '\n' optnl
 		;
 
 main		: DEFAULT PORT NUMBER {
-			printf("Default port: %i\n", $3);
+			default_port = $3;
 		}
 		;
-
 deviceopts2	: deviceopts2 deviceopts1
 		| deviceopts1
 		;
-
-deviceopts1	: LISTEN STRING PORT NUMBER {
-			printf("Listen on port: %i\n", $4);
-		}
-		| LOCATION STRING {
-			printf("Device: %s\n", $2);
-		}
-		| BAUD NUMBER {
-			printf("Baud: %i\n", $2);
-		}
-		| DATA NUMBER {
-			printf("Data: %i\n", $2);
-		}
-		| PARITY STRING {
-			printf("Parity: %s\n", $2);
-		}
-		| STOP NUMBER {
-			printf("Stop: %i\n", $2);
-		}
-		| HARDWARE NUMBER {
-			printf("Hardware: %i\n", $2);
-		}
-		| PASSWORD STRING {
-			printf("Password: %s\n\n", $2);
-		}
+deviceopts1	: LISTEN STRING PORT NUMBER { currentdevice->port = $4; }
+		| LOCATION STRING { currentdevice->devicelocation = $2; }
+		| BAUD NUMBER { currentdevice->baud = $2; }
+		| DATA NUMBER { currentdevice->databits = $2; }
+		| PARITY STRING { currentdevice->parity = $2; }
+		| STOP NUMBER { currentdevice->stopbits = $2; }
+		| HARDWARE NUMBER { currentdevice->hwctrl = $2; }
+		| PASSWORD STRING { currentdevice->password = $2; }
 		| device nl
 		| error nl
 		;
 
 device		: DEVICE STRING	 optnl '{' optnl {
-			printf("\n\nOptions for device %s\n", $2);
+			currentdevice = new_device($2);
+			//currentdevice = malloc(sizeof(*currentdevice));
+			currentdevice->name = $2;
+			currentdevice->port = default_port;
+			
 		}
-			deviceopts2 '}' {
-			//TAILQ_INSERT_TAIL(&changers, curchanger, entry);
-			//curchanger = NULL;
-		}
-		;
-/*
-grammar		: /* empty 
-		| grammar '\n'
-		| grammar main '\n'
-		| grammar device '\n'
-		| grammar error '\n'		{ file->errors++; }
-		;
-main		: DEFAULT PORT NUMBER {
-			printf("%i\n",$3);
+		deviceopts2 '}' {
+			TAILQ_INSERT_TAIL(&devices, currentdevice, entry);
+			currentdevice = NULL;
 		}
 		;
-device		: DEVICE STRING {
-			printf("%s\n",$2);
-		}
-		;
-*/
 %%
 
 /* additional c code */
@@ -560,20 +549,52 @@ char *symget(const char *nam) {
 	return (NULL);
 }
 
-
-int *parse_config(const char *filename)
-{
+char *parse_config(const char *filename) {
+	
+	struct device	*p;
 	int		 errors = 0;
+	
+	
+	
+	TAILQ_INIT(&devices);
 
-	if ((file = pushfile(filename, 0)) == NULL) {
-		log_warn("%s: cannot initialize configuration", __func__);
-		return (-1);
-	}
+	if ((file = pushfile(filename, 0)) == NULL)
+		fatalx("%s: cannot initialize configuration", __func__);
+
 	topfile = file;
 
 	yyparse();
 	errors = file->errors;
 	popfile();
 
-	return (errors ? -1 : 0);
+	if (default_port == 0)
+		fatalx("no default port defined");
+		
+	TAILQ_FOREACH(p, &devices, entry) {
+		printf("Name: %s\n", p->name);
+		printf("Port: %i\n", p->port);
+		printf("Dev: %s\n", p->devicelocation);
+		printf("Baud: %i\n", p->baud);
+		printf("Data: %i\n", p->databits);
+		printf("Parity: %s\n", p->parity);
+		printf("Stop: %i\n", p->stopbits);
+		printf("Hardware: %i\n", p->hwctrl);
+		printf("Password: %s\n\n", p->password);
+	}
+
+	return (devices);
+
+
+}
+
+struct device *new_device(char *name) {
+	struct device	*p;
+	
+	if ((p = calloc(1, sizeof(*p))) == NULL)
+		fatalx(1, NULL);
+	
+	if ((p->name = strdup(name)) == NULL)
+		fatalx(1, NULL);
+	
+	return (p);
 }

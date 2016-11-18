@@ -42,6 +42,8 @@ int		 check_file_secrecy(int, const char *);
 int		 yyparse(void);
 int		 yylex(void);
 int		 yyerror(const char *, ...);
+	__attribute__((__format__ (printf, 1, 2)))
+	__attribute__((__nonnull__ (1)));
 int		 kw_cmp(const void *, const void *);
 int		 lookup(char *);
 int		 lgetc(int);
@@ -68,7 +70,7 @@ typedef struct {
 	} v;
 	int lineno;
 } YYSTYPE;
-#line 72 "y.tab.c"
+#line 74 "y.tab.c"
 #define BAUD 257
 #define DATA 258
 #define PARITY 259
@@ -255,7 +257,7 @@ short *yysslim;
 YYSTYPE *yyvs;
 unsigned int yystacksize;
 int yyparse(void);
-#line 137 "parse.y"
+#line 139 "parse.y"
 
 /* additional c code */
 struct keywords {
@@ -716,7 +718,7 @@ new_device(char *name)
 	
 	return (p);
 }
-#line 712 "y.tab.c"
+#line 714 "y.tab.c"
 /* allocate initial stack or double stack size, up to YYMAXDEPTH */
 static int yygrowstack(void)
 {
@@ -836,14 +838,14 @@ yyloop:
         goto yyreduce;
     }
     if (yyerrflag) goto yyinrecovery;
-/*#if defined(__GNUC__)
+#if defined(__GNUC__)
     goto yynewerror;
 #endif
 yynewerror:
     yyerror("syntax error");
 #if defined(__GNUC__)
     goto yyerrlab;
-#endif*/
+#endif
 yyerrlab:
     ++yynerrs;
 yyinrecovery:
@@ -911,51 +913,51 @@ yyreduce:
     switch (yyn)
     {
 case 5:
-#line 96 "parse.y"
+#line 98 "parse.y"
 { file->errors++; }
 break;
 case 6:
-#line 98 "parse.y"
+#line 100 "parse.y"
 {
 			default_port = yyvsp[0].v.number;
 		}
 break;
 case 9:
-#line 105 "parse.y"
+#line 107 "parse.y"
 { currentdevice->port = yyvsp[0].v.number; }
 break;
 case 10:
-#line 106 "parse.y"
+#line 108 "parse.y"
 {
 			currentdevice->devicelocation = yyvsp[0].v.string;
 		}
 break;
 case 12:
-#line 109 "parse.y"
+#line 111 "parse.y"
 { currentdevice->baud = yyvsp[0].v.number; }
 break;
 case 13:
-#line 110 "parse.y"
+#line 112 "parse.y"
 { currentdevice->databits = yyvsp[0].v.number; }
 break;
 case 14:
-#line 111 "parse.y"
+#line 113 "parse.y"
 { currentdevice->parity = yyvsp[0].v.string; }
 break;
 case 15:
-#line 112 "parse.y"
+#line 114 "parse.y"
 { currentdevice->stopbits = yyvsp[0].v.number; }
 break;
 case 16:
-#line 113 "parse.y"
+#line 115 "parse.y"
 { currentdevice->hwctrl = yyvsp[0].v.number; }
 break;
 case 17:
-#line 114 "parse.y"
+#line 116 "parse.y"
 { currentdevice->password = yyvsp[0].v.string; }
 break;
 case 18:
-#line 116 "parse.y"
+#line 118 "parse.y"
 {
 			currentdevice = new_device(yyvsp[0].v.string);
 			currentdevice->name = 		yyvsp[0].v.string;
@@ -969,13 +971,13 @@ case 18:
 		}
 break;
 case 19:
-#line 126 "parse.y"
+#line 128 "parse.y"
 {
 			TAILQ_INSERT_TAIL(&devices, currentdevice, entry);
 			currentdevice = NULL;
 		}
 break;
-#line 971 "y.tab.c"
+#line 973 "y.tab.c"
     }
     yyssp -= yym;
     yystate = *yyssp;

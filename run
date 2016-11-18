@@ -1,3 +1,0 @@
-#yacc -d -o parse.c parse.y
-gcc *.c -O3 -ansi -std=c99 -pedantic -Wall -Wextra -Wmissing-prototypes -Wstrict-prototypes -Wold-style-definition -o test 
-./test

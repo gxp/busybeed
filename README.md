@@ -1,2 +1,2 @@
 #busybee
-Start of busybee repo for github and local.
+Serial socket stuff. More info later.

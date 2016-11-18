@@ -12,7 +12,14 @@
 #line 20 "parse.y"
 #include <sys/types.h>
 #include <sys/stat.h>
+
+#include <ctype.h>
+#include <unistd.h>
+#include <err.h>
+#include <errno.h>
 #include <limits.h>
+#include <netdb.h>
+#include <string.h>
 #include <syslog.h>
 
 #include "busybee.h"
@@ -61,7 +68,7 @@ typedef struct {
 	} v;
 	int lineno;
 } YYSTYPE;
-#line 65 "parse.c"
+#line 72 "y.tab.c"
 #define BAUD 257
 #define DATA 258
 #define PARITY 259
@@ -248,7 +255,7 @@ short *yysslim;
 YYSTYPE *yyvs;
 unsigned int yystacksize;
 int yyparse(void);
-#line 131 "parse.y"
+#line 137 "parse.y"
 
 /* additional c code */
 struct keywords {
@@ -302,16 +309,16 @@ int lookup(char *s) {
 
 #define MAXPUSHBACK	128
 
-u_char	*parsebuf;
-int	 parseindex;
-u_char	 pushback_buffer[MAXPUSHBACK];
-int	 pushback_index = 0;
+unsigned char	*parsebuf;
+int		 parseindex;
+unsigned char	 pushback_buffer[MAXPUSHBACK];
+int		 pushback_index = 0;
 
 int
 lgetc(int quotec)
 {
 	int		c, next;
-
+	
 	if (parsebuf) {
 		/* Read character from the parsebuffer instead of input. */
 		if (parseindex >= 0) {
@@ -322,21 +329,21 @@ lgetc(int quotec)
 		} else
 			parseindex++;
 	}
-
+	
 	if (pushback_index)
 		return (pushback_buffer[--pushback_index]);
-
+	
 	if (quotec) {
 		if ((c = getc(file->stream)) == EOF) {
 			yyerror("reached end of file while parsing "
-			    "quoted string");
+			"quoted string");
 			if (file == topfile || popfile() == EOF)
 				return (EOF);
 			return (quotec);
 		}
 		return (c);
 	}
-
+	
 	while ((c = getc(file->stream)) == '\\') {
 		next = getc(file->stream);
 		if (next != '\n') {
@@ -346,7 +353,7 @@ lgetc(int quotec)
 		yylval.lineno = file->lineno;
 		file->lineno++;
 	}
-
+	
 	while (c == EOF) {
 		if (file == topfile || popfile() == EOF)
 			return (EOF);
@@ -375,9 +382,9 @@ int
 findeol(void)
 {
 	int	c;
-
+	
 	parsebuf = NULL;
-
+	
 	/* skip to either EOF or the first real EOL */
 	while (1) {
 		if (pushback_index)
@@ -397,157 +404,157 @@ findeol(void)
 int
 yylex(void)
 {
-	u_char	 buf[8096];
-	u_char	*p, *val;
-	int	 quotec, next, c;
-	int	 token;
-
-top:
+	unsigned char	 buf[8096];
+	unsigned char	*p, *val;
+	int		 quotec, next, c;
+	int		 token;
+	
+	top:
 	p = buf;
 	while ((c = lgetc(0)) == ' ' || c == '\t')
 		; /* nothing */
-
-	yylval.lineno = file->lineno;
+		
+		yylval.lineno = file->lineno;
 	if (c == '#')
 		while ((c = lgetc(0)) != '\n' && c != EOF)
 			; /* nothing */
-	if (c == '$' && parsebuf == NULL) {
-		while (1) {
-			if ((c = lgetc(0)) == EOF)
-				return (0);
-
-			if (p + 1 >= buf + sizeof(buf) - 1) {
-				yyerror("string too long");
-				return (findeol());
+			if (c == '$' && parsebuf == NULL) {
+				while (1) {
+					if ((c = lgetc(0)) == EOF)
+						return (0);
+					
+					if (p + 1 >= buf + sizeof(buf) - 1) {
+						yyerror("string too long");
+						return (findeol());
+					}
+					if (isalnum(c) || c == '_') {
+						*p++ = c;
+						continue;
+					}
+					*p = '\0';
+					lungetc(c);
+					break;
+				}
+				val = symget(buf);
+				if (val == NULL) {
+					yyerror("macro '%s' not defined", buf);
+					return (findeol());
+				}
+				parsebuf = val;
+				parseindex = 0;
+				goto top;
 			}
-			if (isalnum(c) || c == '_') {
-				*p++ = c;
-				continue;
+			
+			switch (c) {
+				case '\'':
+				case '"':
+					quotec = c;
+					while (1) {
+						if ((c = lgetc(quotec)) == EOF)
+							return (0);
+						if (c == '\n') {
+							file->lineno++;
+							continue;
+						} else if (c == '\\') {
+							if ((next = lgetc(quotec)) == EOF)
+								return (0);
+							if (next == quotec || c == ' ' || c == '\t')
+								c = next;
+							else if (next == '\n') {
+								file->lineno++;
+								continue;
+							} else
+								lungetc(next);
+						} else if (c == quotec) {
+							*p = '\0';
+							break;
+						} else if (c == '\0') {
+							yyerror("syntax error");
+							return (findeol());
+						}
+						if (p + 1 >= buf + sizeof(buf) - 1) {
+							yyerror("string too long");
+							return (findeol());
+						}
+						*p++ = c;
+					}
+					yylval.v.string = strdup(buf);
+					if (yylval.v.string == NULL)
+						err(1, "yylex: strdup");
+					return (STRING);
 			}
-			*p = '\0';
-			lungetc(c);
-			break;
-		}
-		val = symget(buf);
-		if (val == NULL) {
-			yyerror("macro '%s' not defined", buf);
-			return (findeol());
-		}
-		parsebuf = val;
-		parseindex = 0;
-		goto top;
-	}
-
-	switch (c) {
-	case '\'':
-	case '"':
-		quotec = c;
-		while (1) {
-			if ((c = lgetc(quotec)) == EOF)
-				return (0);
-			if (c == '\n') {
-				file->lineno++;
-				continue;
-			} else if (c == '\\') {
-				if ((next = lgetc(quotec)) == EOF)
-					return (0);
-				if (next == quotec || c == ' ' || c == '\t')
-					c = next;
-				else if (next == '\n') {
-					file->lineno++;
-					continue;
-				} else
-					lungetc(next);
-			} else if (c == quotec) {
+			
+			#define allowed_to_end_number(x) \
+			(isspace(x) || x == ')' || x ==',' || x == '/' || x == '}' || x == '=')
+			
+			if (c == '-' || isdigit(c)) {
+				do {
+					*p++ = c;
+					if ((unsigned)(p-buf) >= sizeof(buf)) {
+						yyerror("string too long");
+						return (findeol());
+					}
+				} while ((c = lgetc(0)) != EOF && isdigit(c));
+				lungetc(c);
+				if (p == buf + 1 && buf[0] == '-')
+					goto nodigits;
+				if (c == EOF || allowed_to_end_number(c)) {
+					const char *errstr = NULL;
+					
+					*p = '\0';
+					yylval.v.number = strtonum(buf, LLONG_MIN,
+								   LLONG_MAX, &errstr);
+					if (errstr) {
+						yyerror("\"%s\" invalid number: %s",
+							buf, errstr);
+						return (findeol());
+					}
+					return (NUMBER);
+				} else {
+					nodigits:
+					while (p > buf + 1)
+						lungetc(*--p);
+					c = *--p;
+					if (c == '-')
+						return (c);
+				}
+			}
+			
+			#define allowed_in_string(x) \
+			(isalnum(x) || (ispunct(x) && x != '(' && x != ')' && \
+			x != '{' && x != '}' && x != '<' && x != '>' && \
+			x != '!' && x != '=' && x != '#' && \
+			x != ',' && x != ';' && x != '/'))
+			
+			if (isalnum(c) || c == ':' || c == '_' || c == '*') {
+				do {
+					*p++ = c;
+					if ((unsigned)(p-buf) >= sizeof(buf)) {
+						yyerror("string too long");
+						return (findeol());
+					}
+				} while ((c = lgetc(0)) != EOF && (allowed_in_string(c)));
+				lungetc(c);
 				*p = '\0';
-				break;
-			} else if (c == '\0') {
-				yyerror("syntax error");
-				return (findeol());
+				if ((token = lookup(buf)) == STRING)
+					if ((yylval.v.string = strdup(buf)) == NULL)
+						err(1, "yylex: strdup");
+					return (token);
 			}
-			if (p + 1 >= buf + sizeof(buf) - 1) {
-				yyerror("string too long");
-				return (findeol());
+			if (c == '\n') {
+				yylval.lineno = file->lineno;
+				file->lineno++;
 			}
-			*p++ = c;
-		}
-		yylval.v.string = strdup(buf);
-		if (yylval.v.string == NULL)
-			err(1, "yylex: strdup");
-		return (STRING);
-	}
-
-#define allowed_to_end_number(x) \
-	(isspace(x) || x == ')' || x ==',' || x == '/' || x == '}' || x == '=')
-
-	if (c == '-' || isdigit(c)) {
-		do {
-			*p++ = c;
-			if ((unsigned)(p-buf) >= sizeof(buf)) {
-				yyerror("string too long");
-				return (findeol());
-			}
-		} while ((c = lgetc(0)) != EOF && isdigit(c));
-		lungetc(c);
-		if (p == buf + 1 && buf[0] == '-')
-			goto nodigits;
-		if (c == EOF || allowed_to_end_number(c)) {
-			const char *errstr = NULL;
-
-			*p = '\0';
-			yylval.v.number = strtonum(buf, LLONG_MIN,
-			    LLONG_MAX, &errstr);
-			if (errstr) {
-				yyerror("\"%s\" invalid number: %s",
-				    buf, errstr);
-				return (findeol());
-			}
-			return (NUMBER);
-		} else {
-nodigits:
-			while (p > buf + 1)
-				lungetc(*--p);
-			c = *--p;
-			if (c == '-')
-				return (c);
-		}
-	}
-
-#define allowed_in_string(x) \
-	(isalnum(x) || (ispunct(x) && x != '(' && x != ')' && \
-	x != '{' && x != '}' && x != '<' && x != '>' && \
-	x != '!' && x != '=' && x != '#' && \
-	x != ',' && x != '/'))
-
-	if (isalnum(c) || c == ':' || c == '_') {
-		do {
-			*p++ = c;
-			if ((unsigned)(p-buf) >= sizeof(buf)) {
-				yyerror("string too long");
-				return (findeol());
-			}
-		} while ((c = lgetc(0)) != EOF && (allowed_in_string(c)));
-		lungetc(c);
-		*p = '\0';
-		if ((token = lookup(buf)) == STRING)
-			if ((yylval.v.string = strdup(buf)) == NULL)
-				err(1, "yylex: strdup");
-		return (token);
-	}
-	if (c == '\n') {
-		yylval.lineno = file->lineno;
-		file->lineno++;
-	}
-	if (c == EOF)
-		return (0);
-	return (c);
+			if (c == EOF)
+				return (0);
+			return (c);
 }
 
 int
 check_file_secrecy(int fd, const char *fname)
 {
 	struct stat	st;
-
+	
 	if (fstat(fd, &st)) {
 		log_warn("cannot stat %s", fname);
 		return (-1);
@@ -567,7 +574,7 @@ struct file *
 pushfile(const char *name, int secret)
 {
 	struct file	*nfile;
-
+	
 	if ((nfile = calloc(1, sizeof(struct file))) == NULL) {
 		log_warn("%s: malloc", __func__);
 		return (NULL);
@@ -583,25 +590,25 @@ pushfile(const char *name, int secret)
 		free(nfile);
 		return (NULL);
 	} else if (secret &&
-	    check_file_secrecy(fileno(nfile->stream), nfile->name)) {
+		check_file_secrecy(fileno(nfile->stream), nfile->name)) {
 		fclose(nfile->stream);
-		free(nfile->name);
-		free(nfile);
-		return (NULL);
-	}
-	nfile->lineno = 1;
-	TAILQ_INSERT_TAIL(&files, nfile, entry);
-	return (nfile);
+	free(nfile->name);
+	free(nfile);
+	return (NULL);
+		}
+		nfile->lineno = 1;
+		TAILQ_INSERT_TAIL(&files, nfile, entry);
+		return (nfile);
 }
 
 int
 popfile(void)
 {
 	struct file	*prev;
-
+	
 	if ((prev = TAILQ_PREV(file, files, entry)) != NULL)
 		prev->errors += file->errors;
-
+	
 	TAILQ_REMOVE(&files, file, entry);
 	fclose(file->stream);
 	free(file->name);
@@ -614,56 +621,56 @@ int
 symset(const char *nam, const char *val, int persist)
 {
 	struct sym	*sym;
-
+	
 	for (sym = TAILQ_FIRST(&symhead); sym && strcmp(nam, sym->nam);
-	    sym = TAILQ_NEXT(sym, entry))
-		;	/* nothing */
-
-	if (sym != NULL) {
-		if (sym->persist == 1)
-			return (0);
-		else {
-			free(sym->nam);
-			free(sym->val);
-			TAILQ_REMOVE(&symhead, sym, entry);
-			free(sym);
-		}
-	}
-	if ((sym = calloc(1, sizeof(*sym))) == NULL)
-		return (-1);
-
-	sym->nam = strdup(nam);
-	if (sym->nam == NULL) {
-		free(sym);
-		return (-1);
-	}
-	sym->val = strdup(val);
-	if (sym->val == NULL) {
-		free(sym->nam);
-		free(sym);
-		return (-1);
-	}
-	sym->used = 0;
-	sym->persist = persist;
-	TAILQ_INSERT_TAIL(&symhead, sym, entry);
-	return (0);
+	     sym = TAILQ_NEXT(sym, entry))
+	     ;	/* nothing */
+	     
+	     if (sym != NULL) {
+		     if (sym->persist == 1)
+			     return (0);
+		     else {
+			     free(sym->nam);
+			     free(sym->val);
+			     TAILQ_REMOVE(&symhead, sym, entry);
+			     free(sym);
+		     }
+	     }
+	     if ((sym = calloc(1, sizeof(*sym))) == NULL)
+		     return (-1);
+	     
+	     sym->nam = strdup(nam);
+	     if (sym->nam == NULL) {
+		     free(sym);
+		     return (-1);
+	     }
+	     sym->val = strdup(val);
+	     if (sym->val == NULL) {
+		     free(sym->nam);
+		     free(sym);
+		     return (-1);
+	     }
+	     sym->used = 0;
+	     sym->persist = persist;
+	     TAILQ_INSERT_TAIL(&symhead, sym, entry);
+	     return (0);
 }
 
 char *
 symget(const char *nam)
 {
 	struct sym	*sym;
-
+	
 	TAILQ_FOREACH(sym, &symhead, entry)
-		if (strcmp(nam, sym->nam) == 0) {
-			sym->used = 1;
-			return (sym->val);
-		}
+	if (strcmp(nam, sym->nam) == 0) {
+		sym->used = 1;
+		return (sym->val);
+	}
 	return (NULL);
 }
 
 int
-parse_config(const char *filename)
+parse_config(const char *filename, struct device *xdev)
 {
 	struct sym	*sym, *next;
 
@@ -702,14 +709,14 @@ new_device(char *name)
 	struct device	*p;
 	
 	if ((p = calloc(1, sizeof(*p))) == NULL)
-		fatalx(1, NULL);
+		fatalx("no calloc");
 	
 	if ((p->name = strdup(name)) == NULL)
-		fatalx(1, NULL);
+		fatalx("no name");
 	
 	return (p);
 }
-#line 705 "parse.c"
+#line 712 "y.tab.c"
 /* allocate initial stack or double stack size, up to YYMAXDEPTH */
 static int yygrowstack(void)
 {
@@ -904,54 +911,53 @@ yyreduce:
     switch (yyn)
     {
 case 5:
-#line 89 "parse.y"
+#line 96 "parse.y"
 { file->errors++; }
 break;
 case 6:
-#line 91 "parse.y"
+#line 98 "parse.y"
 {
 			default_port = yyvsp[0].v.number;
 		}
 break;
 case 9:
-#line 98 "parse.y"
+#line 105 "parse.y"
 { currentdevice->port = yyvsp[0].v.number; }
 break;
 case 10:
-#line 99 "parse.y"
+#line 106 "parse.y"
 {
 			currentdevice->devicelocation = yyvsp[0].v.string;
 		}
 break;
 case 12:
-#line 102 "parse.y"
+#line 109 "parse.y"
 { currentdevice->baud = yyvsp[0].v.number; }
 break;
 case 13:
-#line 103 "parse.y"
+#line 110 "parse.y"
 { currentdevice->databits = yyvsp[0].v.number; }
 break;
 case 14:
-#line 104 "parse.y"
+#line 111 "parse.y"
 { currentdevice->parity = yyvsp[0].v.string; }
 break;
 case 15:
-#line 105 "parse.y"
+#line 112 "parse.y"
 { currentdevice->stopbits = yyvsp[0].v.number; }
 break;
 case 16:
-#line 106 "parse.y"
+#line 113 "parse.y"
 { currentdevice->hwctrl = yyvsp[0].v.number; }
 break;
 case 17:
-#line 107 "parse.y"
+#line 114 "parse.y"
 { currentdevice->password = yyvsp[0].v.string; }
 break;
 case 18:
-#line 109 "parse.y"
+#line 116 "parse.y"
 {
 			currentdevice = new_device(yyvsp[0].v.string);
-			/*set defaults then overwrite if in config*/
 			currentdevice->name = 		yyvsp[0].v.string;
 			currentdevice->port = 		default_port;
 			currentdevice->baud = 		DEFAULT_BAUD;
@@ -963,13 +969,13 @@ case 18:
 		}
 break;
 case 19:
-#line 120 "parse.y"
+#line 126 "parse.y"
 {
 			TAILQ_INSERT_TAIL(&devices, currentdevice, entry);
 			currentdevice = NULL;
 		}
 break;
-#line 965 "parse.c"
+#line 971 "y.tab.c"
     }
     yyssp -= yym;
     yystate = *yyssp;

@@ -1,21 +1,17 @@
 # $OpenBSD: Makefile,v 1.73 2016/01/11 09:17:22 baseprime Exp $
 
-COMMENT =		Device sockets
+PROG=		busybee
+SRCS=		parse.y
+SRCS+=		busybee.c log.c serial.c sockets.c
 
-SRCS =			parse.y busybee.c serial.c sockets.c
+LDADD=		-levent -ltls -lssl -lcrypto -lutil
+DPADD=		${LIBEVENT} ${LIBTLS} ${LIBSSL} ${LIBCRYPTO} ${LIBUTIL}
+#DEBUG=		-g -DDEBUG=3 -O0
+CFLAGS+=	-Wall -I${.CURDIR}
+CFLAGS+=	-Wstrict-prototypes -Wmissing-prototypes
+CFLAGS+=	-Wmissing-declarations
+CFLAGS+=	-Wshadow -Wpointer-arith
+CFLAGS+=	-Wsign-compare
+CLEANFILES+=	y.tab.h
 
-DISTNAME =		busybee-1.0
-REVISIONS=		0
-CATEGORIES =		net
-
-HOMEPAGE =		https://traceyemery.com/
-
-MAINTAINER =		Tracey Emery <tracey@traceyemery.com>
-
-MASTER_SITES =		${HOMEPAGE}downloads/
-
-CONFIGURE_STYLE=	gnu
-
-PERMIT_PACKAGE_CDROM = Yes
-
-.include <bsd.port.mk>
+.include <bsd.prog.mk>

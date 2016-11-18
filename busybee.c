@@ -10,17 +10,21 @@
 int
 main(int argc, char *argv[])
 {
+	int debug = 0;
+	int c;
 
-
+	c = getopt (argc, argv, "h:");
+		
 	struct device		*devs;
 	TAILQ_INIT(&devices);
-	
-	if (parse_config(PATH_CONF) == -1)
-		//exit(1);
+	memset(&devs, 0, sizeof(devs));
+	if (parse_config(PATH_CONF, &devs) == -1)
+		exit(1);
 		
 
 
-
+	log_init(debug ? debug : 1, LOG_DAEMON);
+	
 	TAILQ_FOREACH(devs, &devices, entry) {
 		printf("Name: %s\n", devs->name);
 		printf("Port: %i\n", devs->port);
@@ -33,10 +37,13 @@ main(int argc, char *argv[])
 		printf("Password: %s\n\n", devs->password);
 	}
 
-	// Start daemon fork here
+	/* Start daemon fork here */
 
 
 
-	// Serial
+	/* Serial */
 
+	
+	/* fine */
+	return 0;
 }

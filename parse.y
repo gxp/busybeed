@@ -34,6 +34,8 @@ static struct file {
 } *file, *topfile;
 
 static int			 errors = 0;
+int				 default_port = 50000;
+
 struct file	*pushfile(const char *, int);
 int		 popfile(void);
 int		 check_file_secrecy(int, const char *);
@@ -45,8 +47,6 @@ int		 lookup(char *);
 int		 lgetc(int);
 int		 lungetc(int);
 int		 findeol(void);
-
-int		default_port = 0;
 
 TAILQ_HEAD(symhead, sym)	 symhead = TAILQ_HEAD_INITIALIZER(symhead);
 
@@ -83,45 +83,21 @@ typedef struct {
 /* grammar rules */
 %%
 grammar		: /* empty */
-		| grammar main '\n'
 		| grammar device '\n'
 		| grammar '\n'
+		| grammar main '\n'
 		| grammar error '\n' { file->errors++; }
-		;
-optnl		: '\n' optnl
-		|
-		;
-nl		: '\n' optnl
 		;
 main		: DEFAULT PORT NUMBER {
 			default_port = $3;
-		}
-		;
-device		: DEVICE STRING	 {
-			currentdevice = new_device($2);
-			//set defaults then overwrite if in config
-			
-			
-			// also set these as defines 9600 etc
-			currentdevice->name = $2;
-			currentdevice->port = default_port;
-			currentdevice->devicelocation = "/dev/tty0";
-			currentdevice->baud = 9600;
-			currentdevice->databits = 8;
-			currentdevice->parity = "none";
-			currentdevice->stopbits = 1;
-			currentdevice->hwctrl = 0;
-			currentdevice->password = "";
-		} '{' optnl deviceopts2 '}' {
-			TAILQ_INSERT_TAIL(&devices, currentdevice, entry);
-			currentdevice = NULL;
 		}
 		;
 deviceopts2	: deviceopts2 deviceopts1 nl
 		| deviceopts1 optnl
 		;
 deviceopts1	: LISTEN STRING PORT NUMBER { currentdevice->port = $4; }
-		| LOCATION STRING { currentdevice->devicelocation =$2;
+		| LOCATION STRING {
+			currentdevice->devicelocation = $2;
 		} '{' optnl deviceopts2 '}'
 		| BAUD NUMBER { currentdevice->baud = $2; }
 		| DATA NUMBER { currentdevice->databits = $2; }
@@ -129,8 +105,27 @@ deviceopts1	: LISTEN STRING PORT NUMBER { currentdevice->port = $4; }
 		| STOP NUMBER { currentdevice->stopbits = $2; }
 		| HARDWARE NUMBER { currentdevice->hwctrl = $2; }
 		| PASSWORD STRING { currentdevice->password = $2; }
-		| device
-		| error
+		;
+device		: DEVICE STRING	 {
+			currentdevice = new_device($2);
+			//set defaults then overwrite if in config
+			currentdevice->name = 		$2;
+			currentdevice->port = 		default_port;
+			currentdevice->baud = 		DEFAULT_BAUD;
+			currentdevice->databits =	0;
+			currentdevice->parity =		NULL;
+			currentdevice->stopbits =	0;
+			currentdevice->hwctrl =		0;
+			currentdevice->password =	NULL;
+		} '{' optnl deviceopts2 '}' {
+			TAILQ_INSERT_TAIL(&devices, currentdevice, entry);
+			currentdevice = NULL;
+		}
+		;
+optnl		: '\n' optnl
+		|
+		;
+nl		: '\n' optnl
 		;
 %%
 
@@ -149,7 +144,6 @@ int yyerror(const char *fmt, ...) {
 		fatalx("yyerror vasprintf");
 	va_end(ap);
 	logit(LOG_CRIT, "%s:%d: %s", file->name, yylval.lineno, msg);
-	printf("Errors: %s:%d: %s\n", file->name, yylval.lineno, msg);
 	free(msg);
 	return (0);
 }
@@ -578,7 +572,6 @@ parse_config(const char *filename)
 			free(sym);
 		}
 	}
-	printf("Errors: %i\n", errors);
 	return (errors ? -1 : 0);
 }
 

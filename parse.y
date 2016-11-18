@@ -18,18 +18,11 @@
 /* c declarations */
 %{
 #include <sys/types.h>
-#include <sys/queue.h>
 #include <sys/stat.h>
 #include <limits.h>
 #include <syslog.h>
+
 #include "busybee.h"
-
-
-
-
-
-
-
 
 TAILQ_HEAD(files, file)		 files = TAILQ_HEAD_INITIALIZER(files);
 static struct file {
@@ -40,6 +33,7 @@ static struct file {
 	int			 errors;
 } *file, *topfile;
 
+static int			 errors = 0;
 struct file	*pushfile(const char *, int);
 int		 popfile(void);
 int		 check_file_secrecy(int, const char *);
@@ -52,8 +46,8 @@ int		 lgetc(int);
 int		 lungetc(int);
 int		 findeol(void);
 
-char		*parse_config(const char *);
 int		default_port = 0;
+
 TAILQ_HEAD(symhead, sym)	 symhead = TAILQ_HEAD_INITIALIZER(symhead);
 
 struct sym {
@@ -63,25 +57,6 @@ struct sym {
 	char			*nam;
 	char			*val;
 };
-
-struct device			*new_device(char *);
-
-struct device {
-	TAILQ_ENTRY(device)	 entry;
-	char			*name;
-	int			 port;
-	char			*devicelocation;
-	int			 baud;
-	int			 databits;
-	char			*parity;
-	int			 stopbits;
-	int			 hwctrl;
-	char			*password;
-};
-
-TAILQ_HEAD(devices, device)	 devices;
-
-struct device			*currentdevice;
 
 int		 symset(const char *, const char *, int);
 char		*symget(const char *);
@@ -108,49 +83,54 @@ typedef struct {
 /* grammar rules */
 %%
 grammar		: /* empty */
-		| grammar '\n'
 		| grammar main '\n'
 		| grammar device '\n'
+		| grammar '\n'
 		| grammar error '\n' { file->errors++; }
 		;
-
 optnl		: '\n' optnl
 		|
 		;
-
 nl		: '\n' optnl
 		;
-
 main		: DEFAULT PORT NUMBER {
 			default_port = $3;
 		}
 		;
-deviceopts2	: deviceopts2 deviceopts1
-		| deviceopts1
+device		: DEVICE STRING	 {
+			currentdevice = new_device($2);
+			//set defaults then overwrite if in config
+			
+			
+			// also set these as defines 9600 etc
+			currentdevice->name = $2;
+			currentdevice->port = default_port;
+			currentdevice->devicelocation = "/dev/tty0";
+			currentdevice->baud = 9600;
+			currentdevice->databits = 8;
+			currentdevice->parity = "none";
+			currentdevice->stopbits = 1;
+			currentdevice->hwctrl = 0;
+			currentdevice->password = "";
+		} '{' optnl deviceopts2 '}' {
+			TAILQ_INSERT_TAIL(&devices, currentdevice, entry);
+			currentdevice = NULL;
+		}
+		;
+deviceopts2	: deviceopts2 deviceopts1 nl
+		| deviceopts1 optnl
 		;
 deviceopts1	: LISTEN STRING PORT NUMBER { currentdevice->port = $4; }
-		| LOCATION STRING { currentdevice->devicelocation = $2; }
+		| LOCATION STRING { currentdevice->devicelocation =$2;
+		} '{' optnl deviceopts2 '}'
 		| BAUD NUMBER { currentdevice->baud = $2; }
 		| DATA NUMBER { currentdevice->databits = $2; }
 		| PARITY STRING { currentdevice->parity = $2; }
 		| STOP NUMBER { currentdevice->stopbits = $2; }
 		| HARDWARE NUMBER { currentdevice->hwctrl = $2; }
 		| PASSWORD STRING { currentdevice->password = $2; }
-		| device nl
-		| error nl
-		;
-
-device		: DEVICE STRING	 optnl '{' optnl {
-			currentdevice = new_device($2);
-			//currentdevice = malloc(sizeof(*currentdevice));
-			currentdevice->name = $2;
-			currentdevice->port = default_port;
-			
-		}
-		deviceopts2 '}' {
-			TAILQ_INSERT_TAIL(&devices, currentdevice, entry);
-			currentdevice = NULL;
-		}
+		| device
+		| error
 		;
 %%
 
@@ -163,13 +143,13 @@ struct keywords {
 int yyerror(const char *fmt, ...) {
 	va_list		 ap;
 	char		*msg;
-
 	file->errors++;
 	va_start(ap, fmt);
 	if (vasprintf(&msg, fmt, ap) == -1)
 		fatalx("yyerror vasprintf");
 	va_end(ap);
 	logit(LOG_CRIT, "%s:%d: %s", file->name, yylval.lineno, msg);
+	printf("Errors: %s:%d: %s\n", file->name, yylval.lineno, msg);
 	free(msg);
 	return (0);
 }
@@ -212,7 +192,9 @@ int	 parseindex;
 u_char	 pushback_buffer[MAXPUSHBACK];
 int	 pushback_index = 0;
 
-int lgetc(int quotec) {
+int
+lgetc(int quotec)
+{
 	int		c, next;
 
 	if (parsebuf) {
@@ -258,7 +240,9 @@ int lgetc(int quotec) {
 	return (c);
 }
 
-int lungetc(int c) {
+int
+lungetc(int c)
+{
 	if (c == EOF)
 		return (EOF);
 	if (parsebuf) {
@@ -272,7 +256,9 @@ int lungetc(int c) {
 		return (EOF);
 }
 
-int findeol(void) {
+int
+findeol(void)
+{
 	int	c;
 
 	parsebuf = NULL;
@@ -293,7 +279,9 @@ int findeol(void) {
 	return (ERROR);
 }
 
-int yylex(void) {
+int
+yylex(void)
+{
 	u_char	 buf[8096];
 	u_char	*p, *val;
 	int	 quotec, next, c;
@@ -440,7 +428,9 @@ nodigits:
 	return (c);
 }
 
-int check_file_secrecy(int fd, const char *fname) {
+int
+check_file_secrecy(int fd, const char *fname)
+{
 	struct stat	st;
 
 	if (fstat(fd, &st)) {
@@ -458,7 +448,9 @@ int check_file_secrecy(int fd, const char *fname) {
 	return (0);
 }
 
-struct file *pushfile(const char *name, int secret) {
+struct file *
+pushfile(const char *name, int secret)
+{
 	struct file	*nfile;
 
 	if ((nfile = calloc(1, sizeof(struct file))) == NULL) {
@@ -487,7 +479,9 @@ struct file *pushfile(const char *name, int secret) {
 	return (nfile);
 }
 
-int popfile(void) {
+int
+popfile(void)
+{
 	struct file	*prev;
 
 	if ((prev = TAILQ_PREV(file, files, entry)) != NULL)
@@ -501,7 +495,9 @@ int popfile(void) {
 	return (file ? 0 : EOF);
 }
 
-int symset(const char *nam, const char *val, int persist) {
+int
+symset(const char *nam, const char *val, int persist)
+{
 	struct sym	*sym;
 
 	for (sym = TAILQ_FIRST(&symhead); sym && strcmp(nam, sym->nam);
@@ -538,7 +534,9 @@ int symset(const char *nam, const char *val, int persist) {
 	return (0);
 }
 
-char *symget(const char *nam) {
+char *
+symget(const char *nam)
+{
 	struct sym	*sym;
 
 	TAILQ_FOREACH(sym, &symhead, entry)
@@ -549,45 +547,44 @@ char *symget(const char *nam) {
 	return (NULL);
 }
 
-char *parse_config(const char *filename) {
-	
-	struct device	*p;
-	int		 errors = 0;
-	
-	
-	
-	TAILQ_INIT(&devices);
+int
+parse_config(const char *filename)
+{
+	struct sym	*sym, *next;
 
-	if ((file = pushfile(filename, 0)) == NULL)
+	if ((file = pushfile(filename, 0)) == NULL) {
 		fatalx("%s: cannot initialize configuration", __func__);
-
+		return (-1);
+	}
 	topfile = file;
 
 	yyparse();
 	errors = file->errors;
 	popfile();
 
+	endservent();
+	endprotoent();
+
 	if (default_port == 0)
 		fatalx("no default port defined");
-		
-	TAILQ_FOREACH(p, &devices, entry) {
-		printf("Name: %s\n", p->name);
-		printf("Port: %i\n", p->port);
-		printf("Dev: %s\n", p->devicelocation);
-		printf("Baud: %i\n", p->baud);
-		printf("Data: %i\n", p->databits);
-		printf("Parity: %s\n", p->parity);
-		printf("Stop: %i\n", p->stopbits);
-		printf("Hardware: %i\n", p->hwctrl);
-		printf("Password: %s\n\n", p->password);
+	
+	/* Free macros */
+	for (sym = TAILQ_FIRST(&symhead); sym != NULL; sym = next) {
+		next = TAILQ_NEXT(sym, entry);
+		if (!sym->persist) {
+			free(sym->nam);
+			free(sym->val);
+			TAILQ_REMOVE(&symhead, sym, entry);
+			free(sym);
+		}
 	}
-
-	return (devices);
-
-
+	printf("Errors: %i\n", errors);
+	return (errors ? -1 : 0);
 }
 
-struct device *new_device(char *name) {
+struct device *
+new_device(char *name)
+{
 	struct device	*p;
 	
 	if ((p = calloc(1, sizeof(*p))) == NULL)

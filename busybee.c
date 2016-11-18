@@ -7,23 +7,31 @@
 
 #include "busybee.h"
 
-
-extern	char		*parse_config(const char *);
-extern	char		*__progname;	/* from crt0.o */
-
-//char *devices, *device[6];
-
-int main(int argc, char *argv[]) {
+int
+main(int argc, char *argv[])
+{
 
 
-*parse_config(PATH_CONF);
+	struct device		*devs;
+	TAILQ_INIT(&devices);
+	
+	if (parse_config(PATH_CONF) == -1)
+		//exit(1);
+		
 
-	// Load config
-//	char *config = get_conf();
 
-//strsep for split of config
 
-//	puts(config);
+	TAILQ_FOREACH(devs, &devices, entry) {
+		printf("Name: %s\n", devs->name);
+		printf("Port: %i\n", devs->port);
+		printf("Dev: %s\n", devs->devicelocation);
+		printf("Baud: %i\n", devs->baud);
+		printf("Data: %i\n", devs->databits);
+		printf("Parity: %s\n", devs->parity);
+		printf("Stop: %i\n", devs->stopbits);
+		printf("Hardware: %i\n", devs->hwctrl);
+		printf("Password: %s\n\n", devs->password);
+	}
 
 	// Start daemon fork here
 
@@ -32,24 +40,3 @@ int main(int argc, char *argv[]) {
 	// Serial
 
 }
-
-
-/*
-char *get_conf() {
-	long fsize;
-	const char *c_file = "/etc/busybee.conf";
-	char *c_read = "0";
-	if (access(c_file, F_OK) != -1) {
-		FILE *c = fopen(c_file, "r");
-		fseek(c, 0, SEEK_END);
-		fsize = ftell(c);
-		fseek(c, 0, SEEK_SET);
-		c_read = malloc(fsize+1);
-		fread(c_read, fsize, 1, c);
-		fclose(c);
-		return c_read;
-	} else {
-		exit(EXIT_FAILURE);
-	}
-}
-*/

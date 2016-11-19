@@ -20,39 +20,33 @@
 /*#define PATH_CONF	"/etc/busybee.conf"*/
 #define PATH_CONF	"busybee.conf"
 
-char		*__progname;	/* from crt0.o */
 
-struct log_file {
-	char			log_name[NAME_MAX];
-	int			log_fd;
-	uint32_t		log_id;
-	TAILQ_ENTRY(log_file)	log_entry;
-};
-TAILQ_HEAD(log_files, log_file) log_files;
 
-/* pseudos */
+/* protos */
+
 /* busybee.c */
+extern struct busybee_conf *conf;
 
 /* log.c */
 void	log_init(int, int);
 void	log_procinit(const char *);
 void	log_verbose(int);
 void	log_warn(const char *, ...)
-__attribute__((__format__ (printf, 1, 2)));
+	    __attribute__((__format__ (printf, 1, 2)));
 void	log_warnx(const char *, ...)
-__attribute__((__format__ (printf, 1, 2)));
+	    __attribute__((__format__ (printf, 1, 2)));
 void	log_info(const char *, ...)
-__attribute__((__format__ (printf, 1, 2)));
+	    __attribute__((__format__ (printf, 1, 2)));
 void	log_debug(const char *, ...)
-__attribute__((__format__ (printf, 1, 2)));
+	    __attribute__((__format__ (printf, 1, 2)));
 void	logit(int, const char *, ...)
-__attribute__((__format__ (printf, 2, 3)));
+	    __attribute__((__format__ (printf, 2, 3)));
 void	vlog(int, const char *, va_list)
-__attribute__((__format__ (printf, 2, 0)));
+	    __attribute__((__format__ (printf, 2, 0)));
 __dead void fatal(const char *, ...)
-__attribute__((__format__ (printf, 1, 2)));
+	    __attribute__((__format__ (printf, 1, 2)));
 __dead void fatalx(const char *, ...)
-__attribute__((__format__ (printf, 1, 2)));
+	    __attribute__((__format__ (printf, 1, 2)));
 
 /* parse.y */
 #define DEFAULT_BAUD		 9600
@@ -72,9 +66,11 @@ struct device {
 };
 struct device			*currentdevice;
 
-TAILQ_HEAD(devices, device)	 devices;
+struct busybee_conf {
+	TAILQ_HEAD(devices, device)	 devices;
+};
 
-int		parse_config(const char *, struct device *);
+int		parse_config(const char *, struct busybee_conf *);
 
 /* sockets.c */
 

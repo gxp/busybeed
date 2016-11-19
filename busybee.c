@@ -7,25 +7,18 @@
 
 #include "busybee.h"
 
+extern char		*__progname;	/* from crt0.o */
 int
 main(int argc, char *argv[])
 {
-	int debug = 0;
-	int c;
-
-	c = getopt (argc, argv, "h:");
-		
 	struct device		*devs;
-	TAILQ_INIT(&devices);
-	memset(&devs, 0, sizeof(devs));
-	if (parse_config(PATH_CONF, &devs) == -1)
+	struct busybee_conf	lconf;
+	memset(&lconf, 0, sizeof(lconf));
+
+	if (parse_config(PATH_CONF, &lconf))
 		exit(1);
-		
 
-
-	log_init(debug ? debug : 1, LOG_DAEMON);
-	
-	TAILQ_FOREACH(devs, &devices, entry) {
+	TAILQ_FOREACH(devs, &conf->devices, entry) {
 		printf("Name: %s\n", devs->name);
 		printf("Port: %i\n", devs->port);
 		printf("Dev: %s\n", devs->devicelocation);
@@ -36,14 +29,5 @@ main(int argc, char *argv[])
 		printf("Hardware: %i\n", devs->hwctrl);
 		printf("Password: %s\n\n", devs->password);
 	}
-
-	/* Start daemon fork here */
-
-
-
-	/* Serial */
-
-	
-	/* fine */
 	return 0;
 }

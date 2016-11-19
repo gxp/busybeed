@@ -1,4 +1,4 @@
-# $OpenBSD: Makefile,v 1.73 2016/01/11 09:17:22 baseprime Exp $
+# $OpenBSD: Makefile,v 1.73 2016/11/19 09:17:22 baseprime Exp $
 
 PROG=		busybee
 SRCS=		parse.y

@@ -18,23 +18,8 @@
 /* I borrowed extensively from ntpd. Thank you! */
 
 %{
-/*#include <sys/types.h>
-#include <sys/stat.h>
-
-#include <ctype.h>
-#include <unistd.h>
-#include <err.h>
-#include <errno.h>
-#include <limits.h>
-#include <netdb.h>
-#include <string.h>
-#include <syslog.h>
-*/
-
 #include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
+#include <sys/stat.h>
 
 #include <ctype.h>
 #include <errno.h>

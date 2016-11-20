@@ -1,5 +1,5 @@
 /*
- * busybee.h
+ * busybeed.h
  *
  *  Created on: Oct 14, 2016
  *      Author: baseprime
@@ -24,8 +24,10 @@
 
 /* protos */
 
-/* busybee.c */
+/* busybeed.c */
 extern struct busybee_conf *conf;
+
+/* client.c */
 
 /* log.c */
 void	log_init(int, int);
@@ -49,7 +51,7 @@ __dead void fatalx(const char *, ...)
 	    __attribute__((__format__ (printf, 1, 2)));
 
 /* parse.y */
-#define DEFAULT_BAUD		 9600
+#define DEFAULT_BAUD		9600
 struct device			*new_device(char *);
 
 struct device {

@@ -30,7 +30,7 @@
 #include <string.h>
 #include <syslog.h>
 
-#include "busybee.h"
+#include "busybeed.h"
 
 TAILQ_HEAD(files, file)		 files = TAILQ_HEAD_INITIALIZER(files);
 static struct file {
@@ -54,7 +54,7 @@ int		 lungetc(int);
 int		 findeol(void);
 
 struct busybee_conf		*conf;
-int				 default_port = 50000;
+int				 default_port = -1;
 
 typedef struct {
 	union {
@@ -66,8 +66,7 @@ typedef struct {
 %}
 
 %token	BAUD DATA PARITY STOP HARDWARE PASSWORD
-%token	LISTEN LOCATION
-%token	DEVICE
+%token	DEVICE LISTEN LOCATION
 %left	DEFAULT PORT
 %token	ERROR
 %token	<v.string>		STRING
@@ -87,28 +86,45 @@ main		: DEFAULT PORT NUMBER {
 deviceopts2	: deviceopts2 deviceopts1 nl
 		| deviceopts1 optnl
 		;
-deviceopts1	: LISTEN STRING PORT NUMBER { currentdevice->port = $4; }
+deviceopts1	: LISTEN STRING PORT NUMBER {
+			currentdevice->port = $4;
+		}
 		| LOCATION STRING {
 			currentdevice->devicelocation = $2;
 		} '{' optnl deviceopts2 '}'
-		| BAUD NUMBER { currentdevice->baud = $2; }
-		| DATA NUMBER { currentdevice->databits = $2; }
-		| PARITY STRING { currentdevice->parity = $2; }
-		| STOP NUMBER { currentdevice->stopbits = $2; }
-		| HARDWARE NUMBER { currentdevice->hwctrl = $2; }
-		| PASSWORD STRING { currentdevice->password = $2; }
+		| BAUD NUMBER {
+			currentdevice->baud = $2;
+		}
+		| DATA NUMBER {
+			currentdevice->databits = $2;
+		}
+		| PARITY STRING {
+			currentdevice->parity = $2;
+		}
+		| STOP NUMBER {
+			currentdevice->stopbits = $2;
+		}
+		| HARDWARE NUMBER {
+			currentdevice->hwctrl = $2;
+		}
+		| PASSWORD STRING {
+			currentdevice->password = $2;
+		}
 		;
 device		: DEVICE STRING	 {
-			currentdevice = new_device($2);
-			currentdevice->name = 		$2;
-			currentdevice->port = 		default_port;
+			currentdevice = 		new_device($2);
+			currentdevice->port =		default_port;
 			currentdevice->baud = 		DEFAULT_BAUD;
-			currentdevice->databits =	0;
+			currentdevice->databits =	-1;
 			currentdevice->parity =		NULL;
-			currentdevice->stopbits =	0;
-			currentdevice->hwctrl =		0;
+			currentdevice->stopbits =	-1;
+			currentdevice->hwctrl =		-1;
 			currentdevice->password =	NULL;
 		} '{' optnl deviceopts2 '}' {
+			if (default_port == -1) {
+				yyerror("could not set default port");
+				YYERROR;
+			}
 			TAILQ_INSERT_TAIL(&conf->devices, currentdevice, entry);
 			currentdevice = NULL;
 		}
@@ -436,8 +452,7 @@ parse_config(const char *filename, struct busybee_conf *xconf)
 {
 	int		 errors = 0;
 	conf = xconf;
-	
-	/* TAILQ_INITs HERE */
+
 	TAILQ_INIT(&conf->devices);
 
 	if ((file = pushfile(filename)) == NULL) {
@@ -450,28 +465,6 @@ parse_config(const char *filename, struct busybee_conf *xconf)
 	popfile();
 
 	return (errors ? -1 : 0);
-	
-	/*
-	int		 errors = 0;
-
-	conf = xconf;
-	if ((file = pushfile(filename, 0)) == NULL) {
-		fatalx("%s: cannot initialize configuration", __func__);
-		return (-1);
-	}
-	topfile = file;
-
-	yyparse();
-	errors = file->errors;
-	popfile();
-
-	endservent();
-	endprotoent();
-
-	if (default_port == 0)
-		fatalx("no default port defined");
-	
-	*/
 }
 
 struct device *
@@ -480,10 +473,10 @@ new_device(char *name)
 	struct device	*p;
 	
 	if ((p = calloc(1, sizeof(*p))) == NULL)
-		fatalx("no calloc");
+		fatal("no calloc");
 	
 	if ((p->name = strdup(name)) == NULL)
-		fatalx("no name");
+		fatal("no name");
 	
 	return (p);
 }

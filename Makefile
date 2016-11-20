@@ -1,8 +1,7 @@
 # $OpenBSD: Makefile,v 1.73 2016/11/19 09:17:22 baseprime Exp $
 
-PROG=		busybee
-SRCS=		parse.y
-SRCS+=		busybee.c log.c serial.c sockets.c
+PROG=		busybeed
+SRCS=		parse.y busybeed.c client.c log.c serial.c sockets.c
 
 LDADD=		-levent -ltls -lssl -lcrypto -lutil
 DPADD=		${LIBEVENT} ${LIBTLS} ${LIBSSL} ${LIBCRYPTO} ${LIBUTIL}

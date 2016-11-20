@@ -1,18 +1,19 @@
 /*
- * busybee.c
+ * busybeed.c
  *
  *  Created on: Oct 14, 2016
  *      Author: baseprime
  */
 
-#include "busybee.h"
+#include "busybeed.h"
 
 extern char		*__progname;	/* from crt0.o */
+
 int
 main(int argc, char *argv[])
 {
 	struct device		*devs;
-	struct busybee_conf	lconf;
+	struct busybee_conf	 lconf;
 	memset(&lconf, 0, sizeof(lconf));
 
 	if (parse_config(PATH_CONF, &lconf))

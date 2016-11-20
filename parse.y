@@ -83,15 +83,12 @@ main		: DEFAULT PORT NUMBER {
 			default_port = $3;
 		}
 		;
-deviceopts2	: deviceopts2 deviceopts1 nl
-		| deviceopts1 optnl
+locopts2	: locopts2 locopts1 nl
+		| locopts1 optnl
 		;
-deviceopts1	: LISTEN STRING PORT NUMBER {
+locopts1	: LISTEN STRING PORT NUMBER {
 			currentdevice->port = $4;
 		}
-		| LOCATION STRING {
-			currentdevice->devicelocation = $2;
-		} '{' optnl deviceopts2 '}'
 		| BAUD NUMBER {
 			currentdevice->baud = $2;
 		}
@@ -110,6 +107,16 @@ deviceopts1	: LISTEN STRING PORT NUMBER {
 		| PASSWORD STRING {
 			currentdevice->password = $2;
 		}
+		;
+		locopts		: /* empty */
+		|  '{' optnl locopts2 '}'
+		;
+deviceopts2	: deviceopts2 deviceopts1 nl
+		| deviceopts1 optnl
+		;
+deviceopts1	:  LOCATION STRING {
+			currentdevice->devicelocation = $2;
+		} locopts
 		;
 device		: DEVICE STRING	 {
 			currentdevice = 		new_device($2);

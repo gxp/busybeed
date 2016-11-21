@@ -106,9 +106,10 @@ locopts1	: LISTEN STRING PORT NUMBER {
 		}
 		| PARITY STRING {
 			for (p_c = 0; p_c < s_parity; p_c++) {
-				if (strcmp($2, parity[p_c]) == 0)
+				if (strcmp($2, parity[p_c]) == 0) {
 					currentdevice->parity = $2;
 					continue;
+				}
 			}
 			if (currentdevice->parity == '\0') {
 				yyerror("parity syntax error");

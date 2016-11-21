@@ -57,6 +57,10 @@ int		 findeol(void);
 struct busybeed_conf		*conf;
 int				 default_port = -1;
 extern int			 max_clients;
+const char			*parity[4] = {"none", "odd", "even", "space"};
+const int			 s_parity =
+					(sizeof(parity)/sizeof(const char *));
+int				 p_c = 0;
 
 typedef struct {
 	union {
@@ -101,7 +105,15 @@ locopts1	: LISTEN STRING PORT NUMBER {
 			currentdevice->databits = $2;
 		}
 		| PARITY STRING {
-			currentdevice->parity = $2;
+			for (p_c = 0; p_c < s_parity; p_c++) {
+				if (strcmp($2, parity[p_c]) == 0)
+					currentdevice->parity = $2;
+					continue;
+			}
+			if (currentdevice->parity == '\0') {
+				yyerror("parity syntax error");
+				YYERROR;
+			}
 		}
 		| STOP NUMBER {
 			currentdevice->stopbits = $2;
@@ -169,7 +181,6 @@ yyerror(const char *fmt, ...)
 		fatalx("yyerror vasprintf");
 	va_end(ap);
 	log_warnx("%s:%d: %s", file->name, yylval.lineno, msg);
-	printf("Errors: %s:%d: %s", file->name, yylval.lineno, msg);
 	free(msg);
 	return (0);
 }

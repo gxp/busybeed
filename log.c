@@ -27,7 +27,7 @@
 int		 debug;
 int		 verbose;
 const char	*log_procname;
-
+ 
 void	log_init(int, int);
 void	log_procinit(const char *);
 void	log_verbose(int);

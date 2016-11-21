@@ -1,4 +1,4 @@
-/* $OpenBSD: parse.y,v 1.19 2016/11/16 15:41:17 baseprime Exp $ */
+/* $OpenBSD: parse.y v.1.00 2016/11/20 14:59:17 baseprime Exp $ */
 /*
  * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.com>
  *
@@ -18,8 +18,9 @@
 /* I borrowed extensively from ntpd. Thank you! */
 
 %{
-#include <sys/types.h>
+#include <sys/queue.h>
 #include <sys/stat.h>
+#include <sys/types.h>
 
 #include <ctype.h>
 #include <errno.h>
@@ -53,8 +54,9 @@ int		 lgetc(int);
 int		 lungetc(int);
 int		 findeol(void);
 
-struct busybee_conf		*conf;
+struct busybeed_conf		*conf;
 int				 default_port = -1;
+extern int			 max_clients;
 
 typedef struct {
 	union {
@@ -67,7 +69,7 @@ typedef struct {
 
 %token	BAUD DATA PARITY STOP HARDWARE PASSWORD
 %token	DEVICE LISTEN LOCATION
-%left	DEFAULT PORT
+%token	DEFAULT PORT MAX CLIENTS
 %token	ERROR
 %token	<v.string>		STRING
 %token	<v.number>		NUMBER
@@ -81,6 +83,9 @@ grammar		: /* empty */
 		;
 main		: DEFAULT PORT NUMBER {
 			default_port = $3;
+		}
+		| MAX CLIENTS NUMBER {
+			max_clients = $3;
 		}
 		;
 locopts2	: locopts2 locopts1 nl
@@ -108,7 +113,7 @@ locopts1	: LISTEN STRING PORT NUMBER {
 			currentdevice->password = $2;
 		}
 		;
-		locopts		: /* empty */
+locopts		: /* empty */
 		|  '{' optnl locopts2 '}'
 		;
 deviceopts2	: deviceopts2 deviceopts1 nl
@@ -130,6 +135,10 @@ device		: DEVICE STRING	 {
 		} '{' optnl deviceopts2 '}' {
 			if (default_port == -1) {
 				yyerror("could not set default port");
+				YYERROR;
+			}
+			if (max_clients < 1) {
+				yyerror("could not set max clients");
 				YYERROR;
 			}
 			TAILQ_INSERT_TAIL(&conf->devices, currentdevice, entry);
@@ -160,6 +169,7 @@ yyerror(const char *fmt, ...)
 		fatalx("yyerror vasprintf");
 	va_end(ap);
 	log_warnx("%s:%d: %s", file->name, yylval.lineno, msg);
+	printf("Errors: %s:%d: %s", file->name, yylval.lineno, msg);
 	free(msg);
 	return (0);
 }
@@ -175,12 +185,14 @@ int lookup(char *s) {
 	/* this has to be sorted always */
 	static const struct keywords keywords[] = {
 		{ "baud",		BAUD},
+		{ "clients",		CLIENTS},
 		{ "data",		DATA},
 		{ "default",		DEFAULT},
 		{ "device",		DEVICE},
 		{ "hardware",		HARDWARE},
 		{ "listen",		LISTEN},
 		{ "location",		LOCATION},
+		{ "max",		MAX},
 		{ "parity",		PARITY},
 		{ "password",		PASSWORD},
 		{ "port",		PORT},
@@ -455,10 +467,10 @@ popfile(void)
 }
 
 int
-parse_config(const char *filename, struct busybee_conf *xconf)
+parse_config(const char *filename, struct busybeed_conf *xconf)
 {
 	int		 errors = 0;
-	conf = xconf;
+	conf =		 xconf;
 
 	TAILQ_INIT(&conf->devices);
 
@@ -477,13 +489,13 @@ parse_config(const char *filename, struct busybee_conf *xconf)
 struct device *
 new_device(char *name)
 {
-	struct device	*p;
+	struct device	*dev;
 	
-	if ((p = calloc(1, sizeof(*p))) == NULL)
-		fatal("no calloc");
+	if ((dev = calloc(1, sizeof(*dev))) == NULL)
+		fatalx("no dev calloc");
 	
-	if ((p->name = strdup(name)) == NULL)
-		fatal("no name");
+	if ((dev->name = strdup(name)) == NULL)
+		fatalx("no dev name");
 	
-	return (p);
+	return (dev);
 }

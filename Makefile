@@ -3,8 +3,6 @@
 PROG=		busybeed
 SRCS=		parse.y busybeed.c client.c log.c serial.c sockets.c
 
-LDADD=		-levent -ltls -lssl -lcrypto -lutil
-DPADD=		${LIBEVENT} ${LIBTLS} ${LIBSSL} ${LIBCRYPTO} ${LIBUTIL}
 #DEBUG=		-g -DDEBUG=3 -O0
 CFLAGS+=	-Wall -I${.CURDIR}
 CFLAGS+=	-Wstrict-prototypes -Wmissing-prototypes
@@ -12,5 +10,6 @@ CFLAGS+=	-Wmissing-declarations
 CFLAGS+=	-Wshadow -Wpointer-arith
 CFLAGS+=	-Wsign-compare
 CLEANFILES+=	y.tab.h
+MAN=		busybeed.8
 
 .include <bsd.prog.mk>

@@ -1,20 +1,23 @@
+/* $OpenBSD: busybeed.h v.1.00 2016/11/20 14:59:17 baseprime Exp $ */
 /*
- * busybeed.h
+ * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.com>
  *
- *  Created on: Oct 14, 2016
- *      Author: baseprime
+ * Permission to use, copy, modify, and distribute this software for any
+ * purpose with or without fee is hereby granted, provided that the above
+ * copyright notice and this permission notice appear in all copies.
+ *
+ * THE SOFTWARE IS PROVIDED "AS IS" AND THE AUTHOR DISCLAIMS ALL WARRANTIES
+ * WITH REGARD TO THIS SOFTWARE INCLUDING ALL IMPLIED WARRANTIES OF
+ * MERCHANTABILITY AND FITNESS. IN NO EVENT SHALL THE AUTHOR BE LIABLE FOR
+ * ANY SPECIAL, DIRECT, INDIRECT, OR CONSEQUENTIAL DAMAGES OR ANY DAMAGES
+ * WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
+ * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
+ * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <sys/types.h>
 #include <sys/queue.h>
-
-#include <limits.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <stdarg.h>
-#include <syslog.h>
-#include <unistd.h>
-
 
 
 /*#define PATH_CONF	"/etc/busybee.conf"*/
@@ -22,10 +25,12 @@
 
 
 
-/* protos */
+/* prototypes */
 
 /* busybeed.c */
-extern struct busybee_conf *conf;
+extern struct busybeed_conf 	*conf;
+extern char			*__progname;	/* from crt0.o */
+extern int			 max_clients;
 
 /* client.c */
 
@@ -51,7 +56,7 @@ __dead void fatalx(const char *, ...)
 	    __attribute__((__format__ (printf, 1, 2)));
 
 /* parse.y */
-#define DEFAULT_BAUD		9600
+#define DEFAULT_BAUD		 9600
 struct device			*new_device(char *);
 
 struct device {
@@ -68,13 +73,29 @@ struct device {
 };
 struct device			*currentdevice;
 
-struct busybee_conf {
+struct busybeed_conf {
 	TAILQ_HEAD(devices, device)	 devices;
+	int		        	 debug;
 };
 
-int		parse_config(const char *, struct busybee_conf *);
+int				parse_config(const char *,
+					struct busybeed_conf *);
 
 /* sockets.c */
 
 /* serial.c */
 
+extern struct s_conf		*s_devs;
+extern int			 open_devices(struct s_conf *);
+
+struct s_device {
+	TAILQ_ENTRY(s_device)	 entry;
+	int				 fd;
+	char				*name;
+};
+
+struct s_conf {
+	TAILQ_HEAD(s_devices, s_device)		s_devices;
+	int					s_count;
+	int					s_front;
+};

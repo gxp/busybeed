@@ -23,3 +23,10 @@ int			 max_clients = 0;
  * client subscriber, something like subscribe_client(char *clientname,
  * 					char *devname, char *password);
  */
+
+/*
+ * clients can connect to a socket and THEN subscribe to a stream via name and password
+ * clients should only be allowed to test a password 3 times before being kicked out
+ * we could even add "bad" clients to pf rules
+ *
+ */

@@ -174,7 +174,8 @@ open_devices(struct s_conf *x_devs)
 			/* set input/output as raw */
 			s_opts.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
 			s_opts.c_oflag &= ~OPOST;
-			
+			/* Set the new options for the port */
+			tcsetattr(fd, TCSANOW, &s_opts);
 			cs_device->password =		 devs->password;
 			cs_device->location =		 devs->devicelocation;
 			cs_device->port =		 devs->port;

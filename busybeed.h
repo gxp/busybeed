@@ -20,8 +20,8 @@
 #include <stdarg.h>
 
 
-/*#define PATH_CONF	"/etc/busybee.conf"*/
-#define PATH_CONF	"busybee.conf"
+/*#define PATH_CONF	"/etc/busybeed.conf"*/
+#define PATH_CONF	"busybeed.conf"
 
 
 
@@ -69,6 +69,7 @@ struct device {
 	char			*parity;
 	int			 stopbits;
 	int			 hwctrl;
+	int			 swctrl;
 	char			*password;
 };
 struct device			*currentdevice;
@@ -88,11 +89,17 @@ int				parse_config(const char *,
 extern struct s_conf		*s_devs;
 extern int			 open_devices(struct s_conf *);
 
+struct s_device			*new_s_device(char *);
+
 struct s_device {
 	TAILQ_ENTRY(s_device)	 entry;
 	int				 fd;
+	int				 port;
+	char				*location;
+	char				*password;
 	char				*name;
 };
+struct s_device			*cs_device;
 
 struct s_conf {
 	TAILQ_HEAD(s_devices, s_device)		s_devices;

@@ -82,6 +82,8 @@ main(int argc, char *argv[])
 	if (parse_config(PATH_CONF, &lconf))
 		exit(1);
 
-	open_devices(&sdevs);
+	if (open_devices(&sdevs))
+		exit(1);
+	
 	return 0;
 }

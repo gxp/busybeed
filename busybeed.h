@@ -92,7 +92,7 @@ extern int			 open_devices(struct s_conf *);
 struct s_device			*new_s_device(char *);
 
 struct s_device {
-	TAILQ_ENTRY(s_device)	 entry;
+	TAILQ_ENTRY(s_device)	 	 entry;
 	int				 fd;
 	int				 port;
 	char				*location;
@@ -103,6 +103,4 @@ struct s_device			*cs_device;
 
 struct s_conf {
 	TAILQ_HEAD(s_devices, s_device)		s_devices;
-	int					s_count;
-	int					s_front;
 };

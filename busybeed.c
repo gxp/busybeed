@@ -17,6 +17,8 @@
 
 #include <sys/queue.h>
 
+#include <err.h>
+#include <errno.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -72,6 +74,7 @@ main(int argc, char *argv[])
 {
 
 	struct s_conf			 sdevs;
+	struct s_device			*ldevs;
 	struct busybeed_conf	 	 lconf;
 	memset(&sdevs, 0, sizeof(sdevs));
 	memset(&lconf, 0, sizeof(lconf));
@@ -79,11 +82,54 @@ main(int argc, char *argv[])
 	/* log to stderr until daemonized */
 	log_init(lconf.debug ? lconf.debug : 1, LOG_DAEMON);
 	
+	if (geteuid()) {
+		errx(1, "need root privileges");
+		exit(1);
+	}
+	
 	if (parse_config(PATH_CONF, &lconf))
 		exit(1);
 
 	if (open_devices(&sdevs))
 		exit(1);
+
+	/* serial devices are now setup and running */
 	
+	/* setup socket(s) */
+
+	TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
+		printf("Name: %s\n", ldevs->name);
+		printf("Port: %i\n", ldevs->port);
+		printf("Location: %s\n", ldevs->location);
+		printf("Password: %s\n", ldevs->password);
+	}
+
+	/* setup sigs and fork process */
+	signal(SIGCHLD, sighdlr);
+	
+	/* fork child here */
+	
+	log_procinit("[priv]");
+	
+	signal(SIGTERM, sighdlr);
+	signal(SIGINT, sighdlr);
+	signal(SIGHUP, sighdlr);
+	
+	if (pledge("stdio rpath inet settime proc id", NULL) == -1)
+		err(1, "pledge");
+	
+	while (quit == 0) {
+		
+	}
+	
+	/* cleanup devices */
+	TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
+		close(ldevs->fd);
+	}
+	
+	/* cleanup sockets */
+	
+	signal(SIGCHLD, SIG_DFL);
+	log_info("busybeed terminating");
 	return 0;
 }

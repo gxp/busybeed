@@ -182,8 +182,6 @@ open_devices(struct s_conf *x_devs)
 			cs_device->fd =			 fd;
 			TAILQ_INSERT_TAIL(&s_devs->s_devices, cs_device, entry);
 		}
-		close(fd);
-		printf("Closed fd\n");
 	}
 	return 0;
 }

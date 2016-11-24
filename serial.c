@@ -186,6 +186,7 @@ open_devices(struct s_conf *x_devs)
 	return 0;
 }
 
+
 struct s_device *
 new_s_device(char *name)
 {
@@ -198,5 +199,4 @@ new_s_device(char *name)
 		fatalx("no s_dev name");
 	
 	return (dev);
-}
-
+};

@@ -56,7 +56,7 @@ int		 findeol(void);
 
 struct busybeed_conf		*conf;
 int				 default_port = -1;
-extern int			 max_clients;
+extern int			 max_clients, max_subscriptions;
 const char			*parity[4] = {"none", "odd", "even", "space"};
 const int			baudrates[18] = {50, 75, 110, 134, 150, 200,
 							300, 600, 1200, 1800,
@@ -80,7 +80,7 @@ typedef struct {
 
 %token	BAUD DATA PARITY STOP HARDWARE SOFTWARE PASSWORD
 %token	DEVICE LISTEN LOCATION
-%token	DEFAULT PORT MAX CLIENTS
+%token	DEFAULT PORT MAX CLIENTS SUBSCRIPTIONS
 %token	ERROR
 %token	<v.string>		STRING
 %token	<v.number>		NUMBER
@@ -97,6 +97,9 @@ main		: DEFAULT PORT NUMBER {
 		}
 		| MAX CLIENTS NUMBER {
 			max_clients = $3;
+		}
+		| MAX SUBSCRIPTIONS NUMBER {
+			max_subscriptions = $3;
 		}
 		;
 locopts2	: locopts2 locopts1 nl
@@ -195,6 +198,10 @@ device		: DEVICE STRING	 {
 				yyerror("could not set max clients");
 				YYERROR;
 			}
+			if (max_subscriptions < 1) {
+				yyerror("could not set max subscriptions");
+				YYERROR;
+			}
 			TAILQ_INSERT_TAIL(&conf->devices, currentdevice, entry);
 			currentdevice = NULL;
 		}
@@ -250,7 +257,8 @@ int lookup(char *s) {
 		{ "password",		PASSWORD},
 		{ "port",		PORT},
 		{ "software",		SOFTWARE},
-		{ "stop",		STOP}
+		{ "stop",		STOP},
+		{ "subscriptions",	SUBSCRIPTIONS}
 	};
 	const struct keywords	*p;
 
@@ -552,4 +560,4 @@ new_device(char *name)
 		fatalx("no dev name");
 	
 	return (dev);
-}
+};

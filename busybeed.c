@@ -16,6 +16,8 @@
  */
 
 #include <sys/queue.h>
+#include <sys/socket.h>
+#include <sys/types.h>
 
 #include <err.h>
 #include <errno.h>
@@ -73,12 +75,15 @@ int
 main(int argc, char *argv[])
 {
 
+	struct busybeed_conf	 	 lconf;
 	struct s_conf			 sdevs;
 	struct s_device			*ldevs;
-	struct busybeed_conf	 	 lconf;
+	struct sock_conf		 socks;
+	struct s_socket			*lsocks;
+	
 	memset(&sdevs, 0, sizeof(sdevs));
 	memset(&lconf, 0, sizeof(lconf));
-
+	memset(&socks, 0, sizeof(socks));
 	/* log to stderr until daemonized */
 	log_init(lconf.debug ? lconf.debug : 1, LOG_DAEMON);
 	
@@ -93,16 +98,10 @@ main(int argc, char *argv[])
 	if (open_devices(&sdevs))
 		exit(1);
 
-	/* serial devices are now setup and running */
+	if (create_sockets(&socks, &sdevs))
+		exit(1);
 	
-	/* setup socket(s) */
 
-	TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
-		printf("Name: %s\n", ldevs->name);
-		printf("Port: %i\n", ldevs->port);
-		printf("Location: %s\n", ldevs->location);
-		printf("Password: %s\n", ldevs->password);
-	}
 
 	/* setup sigs and fork process */
 	signal(SIGCHLD, sighdlr);
@@ -119,16 +118,20 @@ main(int argc, char *argv[])
 		err(1, "pledge");
 	
 	while (quit == 0) {
-		
+		quit = 1;
+	}
+	
+	/* cleanup sockets */
+	TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry) {
+		shutdown(lsocks->listener, 2);
+		/*close(lsocks->listener);*/
 	}
 	
 	/* cleanup devices */
 	TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
 		close(ldevs->fd);
 	}
-	
-	/* cleanup sockets */
-	
+
 	signal(SIGCHLD, SIG_DFL);
 	log_info("busybeed terminating");
 	return 0;

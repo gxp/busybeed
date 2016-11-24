@@ -3,7 +3,7 @@
 PROG=		busybeed
 SRCS=		parse.y busybeed.c client.c log.c serial.c sockets.c
 
-#DEBUG=		-g -DDEBUG=3 -O0
+DEBUG=		-g -DDEBUG=3 -O0
 CFLAGS+=	-Wall -I${.CURDIR}
 CFLAGS+=	-Wstrict-prototypes -Wmissing-prototypes
 CFLAGS+=	-Wmissing-declarations

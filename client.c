@@ -17,7 +17,7 @@
 
 #include "busybeed.h"
 
-int			 max_clients = 0;
+int			 max_clients = 0, max_subscriptions = 0;
 
 /*
  * client subscriber, something like subscribe_client(char *clientname,

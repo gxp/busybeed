@@ -30,7 +30,7 @@
 /* busybeed.c */
 extern struct busybeed_conf 	*conf;
 extern char			*__progname;	/* from crt0.o */
-extern int			 max_clients;
+extern int			 max_clients, max_subscriptions;
 
 /* client.c */
 
@@ -82,8 +82,6 @@ struct busybeed_conf {
 int				parse_config(const char *,
 					struct busybeed_conf *);
 
-/* sockets.c */
-
 /* serial.c */
 
 extern struct s_conf		*s_devs;
@@ -102,5 +100,25 @@ struct s_device {
 struct s_device			*cs_device;
 
 struct s_conf {
-	TAILQ_HEAD(s_devices, s_device)		s_devices;
+	TAILQ_HEAD(s_devices, s_device)		 s_devices;
 };
+
+/* sockets.c */
+extern struct sock_conf		*s_socks;
+extern int			 create_sockets(struct sock_conf *,
+							struct s_conf *);
+
+struct s_socket			*new_socket(int);
+
+struct s_socket {
+	TAILQ_ENTRY(s_socket)		 entry;
+	int				 port;
+	int				 listener;
+};
+
+struct s_socket			*c_socket;
+
+struct sock_conf {
+	TAILQ_HEAD(s_sockets, s_socket)		 s_sockets;
+};
+

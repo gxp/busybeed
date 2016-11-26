@@ -23,16 +23,12 @@
 /*#define PATH_CONF	"/etc/busybeed.conf"*/
 #define PATH_CONF	"busybeed.conf"
 
-
-
 /* prototypes */
 
 /* busybeed.c */
 extern struct busybeed_conf 	*conf;
 extern char			*__progname;	/* from crt0.o */
 extern int			 max_clients, max_subscriptions;
-
-/* client.c */
 
 /* log.c */
 void	log_init(int, int);
@@ -62,7 +58,7 @@ struct device			*new_device(char *);
 struct device {
 	TAILQ_ENTRY(device)	 entry;
 	char			*name;
-	int			 port;
+	char			*port;
 	char			*devicelocation;
 	int			 baud;
 	int			 databits;
@@ -92,7 +88,7 @@ struct s_device			*new_s_device(char *);
 struct s_device {
 	TAILQ_ENTRY(s_device)	 	 entry;
 	int				 fd;
-	int				 port;
+	char				*port;
 	char				*location;
 	char				*password;
 	char				*name;
@@ -108,11 +104,11 @@ extern struct sock_conf		*s_socks;
 extern int			 create_sockets(struct sock_conf *,
 							struct s_conf *);
 
-struct s_socket			*new_socket(int);
+struct s_socket			*new_socket(char *);
 
 struct s_socket {
 	TAILQ_ENTRY(s_socket)		 entry;
-	int				 port;
+	char				*port;
 	int				 listener;
 };
 
@@ -122,3 +118,6 @@ struct sock_conf {
 	TAILQ_HEAD(s_sockets, s_socket)		 s_sockets;
 };
 
+int				 create_socket(char *);
+
+/* client.c */

@@ -55,10 +55,10 @@ int		 lungetc(int);
 int		 findeol(void);
 
 struct busybeed_conf		*conf;
-int				 default_port = -1;
+char				*default_port = NULL;
 extern int			 max_clients, max_subscriptions;
 const char			*parity[4] = {"none", "odd", "even", "space"};
-const int			baudrates[18] = {50, 75, 110, 134, 150, 200,
+const int			 baudrates[18] = {50, 75, 110, 134, 150, 200,
 							300, 600, 1200, 1800,
 							2400, 4800, 9600, 38400,
 							57600, 76800, 115200};
@@ -92,7 +92,7 @@ grammar		: /* empty */
 		| grammar main '\n'
 		| grammar error '\n' { file->errors++; }
 		;
-main		: DEFAULT PORT NUMBER {
+main		: DEFAULT PORT STRING {
 			default_port = $3;
 		}
 		| MAX CLIENTS NUMBER {
@@ -105,7 +105,7 @@ main		: DEFAULT PORT NUMBER {
 locopts2	: locopts2 locopts1 nl
 		| locopts1 optnl
 		;
-locopts1	: LISTEN STRING PORT NUMBER {
+locopts1	: LISTEN STRING PORT STRING {
 			currentdevice->port = $4;
 		}
 		| BAUD NUMBER {
@@ -190,7 +190,7 @@ device		: DEVICE STRING	 {
 			currentdevice->swctrl =		-1;
 			currentdevice->password =	NULL;
 		} '{' optnl deviceopts2 '}' {
-			if (default_port == -1) {
+			if (default_port == "\0") {
 				yyerror("could not set default port");
 				YYERROR;
 			}

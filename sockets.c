@@ -21,6 +21,7 @@
 #include <sys/types.h>
 
 #include <errno.h>
+#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -38,35 +39,85 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 	struct s_device			*ldevs;
 	s_devs =			 x_devs;
 	s_socks =			 x_socks;
-	
+
 	TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
-		
-		/* client will need this info later. keep here for now
-		 * printf("Name: %s\n", ldevs->name);
-		printf("Port: %i\n", ldevs->port);
-		printf("Location: %s\n", ldevs->location);
-		printf("Password: %s\n", ldevs->password); */
-		
 		c_socket = new_socket(ldevs->port);
-		// add listnener
+		if ((c_socket->listener = create_socket(ldevs->port)) == -1)
+			return -1;
 	}
-	
-	
-	
-	
-	
+
 	return 0;
 }
 
+int
+create_socket(char *port)
+{
+	int sock_fd;
+	struct addrinfo ahints, *servinfo, *i;
+
+	int gai, o_val = 1;
+	
+	memset(&ahints, 0, sizeof(ahints));
+	ahints.ai_family = AF_UNSPEC;
+	ahints.ai_socktype = SOCK_STREAM;
+	ahints.ai_flags |= AI_PASSIVE;
+	
+	if((gai = getaddrinfo(NULL, port, &ahints, &servinfo)) != 0)
+	{
+		fatalx("getaddrinfo failed");
+		fatalx(gai_strerror(gai));
+		return -1;
+	}
+
+	for(i = servinfo; i != NULL; i = i->ai_next)
+	{
+		if((sock_fd = socket(i->ai_family, i->ai_socktype,
+			i->ai_protocol)) == -1)
+			continue;
+
+		if(setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &o_val,
+			sizeof(int)) == -1)
+		{
+			fatalx("setsockopt error");
+			freeaddrinfo(servinfo);
+			return -1;
+		}
+
+		if(bind(sock_fd, i->ai_addr, i->ai_addrlen) == -1)
+		{
+			close(sock_fd);
+			continue;
+		}
+		break;
+	}
+
+	if(i == NULL)
+	{
+		fatalx("can't bind to port");
+		freeaddrinfo(servinfo);
+		return -1;
+	}
+
+	freeaddrinfo(servinfo);
+
+	if(listen(sock_fd, max_clients) == -1)
+	{
+		fatalx("socket error");
+		return -1;
+	}
+
+	return sock_fd;
+}
+
 struct s_socket *
-new_socket(int port)
+new_socket(char *port)
 {
 	struct s_socket	*sock;
 	
 	if ((sock = calloc(1, sizeof(*sock))) == NULL)
 		fatalx("no s_sock calloc");
 	
-	if (port < 1)
+	if ((sock->port = strdup(port)) == NULL)
 		fatalx("no s_sock port");
 	
 	return (sock);

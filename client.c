@@ -30,3 +30,15 @@ int			 max_clients = 0, max_subscriptions = 0;
  * we could even add "bad" clients to pf rules
  *
  */
+/*
+ * 	TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
+		
+		client will need this info later. keep here for now
+		printf("Name: %s\n", ldevs->name);
+		printf("Port: %i\n", ldevs->port);
+		printf("Location: %s\n", ldevs->location);
+		printf("Password: %s\n", ldevs->password); 
+		
+
+	}
+*/

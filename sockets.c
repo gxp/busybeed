@@ -64,12 +64,12 @@ create_socket(char *port)
 	ahints.ai_socktype = SOCK_STREAM;
 	ahints.ai_flags |= AI_PASSIVE;
 	
-	if((gai = getaddrinfo(NULL, port, &ahints, &servinfo)) != 0) 	{
+	if((gai = getaddrinfo(NULL, port, &ahints, &servinfo)) != 0) {
 		fatalx("getaddrinfo failed: %s", gai_strerror(gai));
 		return -1;
 	}
 
-	for(i = servinfo; i != NULL; i = i->ai_next) 	{
+	for(i = servinfo; i != NULL; i = i->ai_next) {
 		if((sock_fd = socket(i->ai_family, i->ai_socktype,
 			i->ai_protocol)) == -1)
 			continue;

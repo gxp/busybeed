@@ -58,40 +58,37 @@ create_socket(char *port)
 	int gai, o_val = 1;
 	
 	memset(&ahints, 0, sizeof(ahints));
+
+	/* accept any family, use streams, and make passive */
 	ahints.ai_family = AF_UNSPEC;
 	ahints.ai_socktype = SOCK_STREAM;
 	ahints.ai_flags |= AI_PASSIVE;
 	
-	if((gai = getaddrinfo(NULL, port, &ahints, &servinfo)) != 0)
-	{
+	if((gai = getaddrinfo(NULL, port, &ahints, &servinfo)) != 0) 	{
 		fatalx("getaddrinfo failed: %s", gai_strerror(gai));
 		return -1;
 	}
 
-	for(i = servinfo; i != NULL; i = i->ai_next)
-	{
+	for(i = servinfo; i != NULL; i = i->ai_next) 	{
 		if((sock_fd = socket(i->ai_family, i->ai_socktype,
 			i->ai_protocol)) == -1)
 			continue;
 
 		if(setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &o_val,
-			sizeof(int)) == -1)
-		{
+			sizeof(int)) == -1) {
 			fatalx("setsockopt error");
 			freeaddrinfo(servinfo);
 			return -1;
 		}
 
-		if(bind(sock_fd, i->ai_addr, i->ai_addrlen) == -1)
-		{
+		if(bind(sock_fd, i->ai_addr, i->ai_addrlen) == -1) {
 			close(sock_fd);
 			continue;
 		}
 		break;
 	}
 
-	if(i == NULL)
-	{
+	if(i == NULL) {
 		fatalx("can't bind to port");
 		freeaddrinfo(servinfo);
 		return -1;
@@ -99,8 +96,7 @@ create_socket(char *port)
 
 	freeaddrinfo(servinfo);
 
-	if(listen(sock_fd, max_clients) == -1)
-	{
+	if(listen(sock_fd, max_clients) == -1) {
 		fatalx("socket error");
 		return -1;
 	}

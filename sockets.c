@@ -53,49 +53,48 @@ int
 create_socket(char *port)
 {
 	int sock_fd;
-	struct addrinfo ahints, *servinfo, *i;
+	struct addrinfo addr_hints, *addr_res, *loop_res;
 
 	int gai, o_val = 1;
-	
-	memset(&ahints, 0, sizeof(ahints));
 
+	memset(&addr_hints, 0, sizeof(addr_hints));
 	/* accept any family, use streams, and make passive */
-	ahints.ai_family = AF_UNSPEC;
-	ahints.ai_socktype = SOCK_STREAM;
-	ahints.ai_flags |= AI_PASSIVE;
-	
-	if((gai = getaddrinfo(NULL, port, &ahints, &servinfo)) != 0) {
+	addr_hints.ai_family = AF_UNSPEC;
+	addr_hints.ai_socktype = SOCK_STREAM;
+	addr_hints.ai_flags |= AI_PASSIVE;
+	/* get addrs */
+	if((gai = getaddrinfo(NULL, port, &addr_hints, &addr_res)) != 0) {
 		fatalx("getaddrinfo failed: %s", gai_strerror(gai));
 		return -1;
 	}
-
-	for(i = servinfo; i != NULL; i = i->ai_next) {
-		if((sock_fd = socket(i->ai_family, i->ai_socktype,
-			i->ai_protocol)) == -1)
+	/* bind loop*/
+	for(loop_res = addr_res; loop_res != NULL; loop_res = loop_res->ai_next) {
+		if((sock_fd = socket(loop_res->ai_family, loop_res->ai_socktype,
+			loop_res->ai_protocol)) == -1)
 			continue;
 
 		if(setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &o_val,
 			sizeof(int)) == -1) {
 			fatalx("setsockopt error");
-			freeaddrinfo(servinfo);
+			freeaddrinfo(addr_res);
 			return -1;
 		}
 
-		if(bind(sock_fd, i->ai_addr, i->ai_addrlen) == -1) {
+		if(bind(sock_fd, loop_res->ai_addr, loop_res->ai_addrlen) == -1) {
 			close(sock_fd);
 			continue;
 		}
 		break;
 	}
 
-	if(i == NULL) {
+	if(loop_res == NULL) {
 		fatalx("can't bind to port");
-		freeaddrinfo(servinfo);
+		freeaddrinfo(addr_res);
 		return -1;
 	}
 
-	freeaddrinfo(servinfo);
-
+	freeaddrinfo(addr_res);
+	/* error after max_clients reached */
 	if(listen(sock_fd, max_clients) == -1) {
 		fatalx("socket error");
 		return -1;
@@ -108,12 +107,12 @@ struct s_socket *
 new_socket(char *port)
 {
 	struct s_socket	*sock;
-	
+
 	if ((sock = calloc(1, sizeof(*sock))) == NULL)
 		fatalx("no s_sock calloc");
 	
 	if ((sock->port = strdup(port)) == NULL)
 		fatalx("no s_sock port");
-	
+
 	return (sock);
 };

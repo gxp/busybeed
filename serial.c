@@ -157,12 +157,12 @@ open_devices(struct s_conf *x_devs)
 			}
 			/* set hardware control */
 			/* doesn't seem to be enabled in OpenBSD */
-			if (devs->hwctrl != -1) {
-				/* s_opts.c_cflag &= ~CNEW_RTSCTS; */
+			/*if (devs->hwctrl != -1) {
+				s_opts.c_cflag &= ~CNEW_RTSCTS;
 				if (devs->hwctrl == 1) {
-					/* s_opts.c_cflag |= CNEW_RTSCTS; */
+					s_opts.c_cflag |= CNEW_RTSCTS;
 				}
-			}
+			}*/
 			/* set software control */
 			if (devs->swctrl != -1) {
 				s_opts.c_iflag &= ~(IXON | IXOFF | IXANY);

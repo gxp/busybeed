@@ -34,21 +34,6 @@
 
 struct sock_conf		*s_socks;
 
-/*
-struct address	*host_v4(const char *);
-struct address	*host_v6(const char *);
-int		 host_dns(const char *, struct addresslist *,
-		    int, struct portrange *, const char *, int);
-int		 host_if(const char *, struct addresslist *,
-		    int, struct portrange *, const char *, int);
-int		 host(const char *, struct addresslist *,
-		    int, struct portrange *, const char *, int);
-void		 host_free(struct addresslist *);
-struct portrange {
-	in_port_t		 val[2];
-	uint8_t			 op;
-};*/
-
 int
 create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 {
@@ -66,7 +51,6 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 	return 0;
 }
 
-/* interface selection in getaddrinfo */
 int
 create_socket(char *port, char *b_iface)
 {
@@ -81,6 +65,12 @@ create_socket(char *port, char *b_iface)
 	addr_hints.ai_family = AF_UNSPEC;
 	addr_hints.ai_socktype = SOCK_STREAM;
 	addr_hints.ai_flags |= AI_PASSIVE;
+
+
+
+
+
+
 	/* do interface stuff here */
 	/* getifaddrs */
 	if (b_iface != '\0') {
@@ -92,12 +82,17 @@ create_socket(char *port, char *b_iface)
 			
 		}
 	}
-	
+
 	/* get addrs */
 	if((gai = getaddrinfo(iface, port, &addr_hints, &addr_res)) != 0) {
 		fatalx("getaddrinfo failed: %s", gai_strerror(gai));
 		return -1;
 	}
+
+
+
+
+
 
 
 

@@ -118,7 +118,8 @@ main(int argc, char *argv[])
 		err(1, "pledge");
 	
 	while (quit == 0) {
-		quit = 1;
+		sleep(10000);
+		/*quit = 1;*/
 	}
 	
 	/* cleanup sockets */

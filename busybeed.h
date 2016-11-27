@@ -53,6 +53,7 @@ __dead void fatalx(const char *, ...)
 
 /* parse.y */
 #define DEFAULT_BAUD		 9600
+extern char			*bind_interface;
 struct device			*new_device(char *);
 
 struct device {
@@ -67,6 +68,7 @@ struct device {
 	int			 hwctrl;
 	int			 swctrl;
 	char			*password;
+	char			*bind_interface;
 };
 struct device			*currentdevice;
 
@@ -89,6 +91,7 @@ struct s_device {
 	TAILQ_ENTRY(s_device)	 	 entry;
 	int				 fd;
 	char				*port;
+	char				*bind_interface;
 	char				*location;
 	char				*password;
 	char				*name;
@@ -100,6 +103,7 @@ struct s_conf {
 };
 
 /* sockets.c */
+#define MAX_REQS		 10
 extern struct sock_conf		*s_socks;
 extern int			 create_sockets(struct sock_conf *,
 							struct s_conf *);
@@ -118,6 +122,6 @@ struct sock_conf {
 	TAILQ_HEAD(s_sockets, s_socket)		 s_sockets;
 };
 
-int				 create_socket(char *);
+int				 create_socket(char *, char *);
 
 /* client.c */

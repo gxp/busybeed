@@ -21,6 +21,7 @@
 #include <sys/types.h>
 
 #include <errno.h>
+#include <ifaddrs.h>
 #include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -33,6 +34,21 @@
 
 struct sock_conf		*s_socks;
 
+/*
+struct address	*host_v4(const char *);
+struct address	*host_v6(const char *);
+int		 host_dns(const char *, struct addresslist *,
+		    int, struct portrange *, const char *, int);
+int		 host_if(const char *, struct addresslist *,
+		    int, struct portrange *, const char *, int);
+int		 host(const char *, struct addresslist *,
+		    int, struct portrange *, const char *, int);
+void		 host_free(struct addresslist *);
+struct portrange {
+	in_port_t		 val[2];
+	uint8_t			 op;
+};*/
+
 int
 create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 {
@@ -42,17 +58,20 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 
 	TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
 		c_socket = new_socket(ldevs->port);
-		if ((c_socket->listener = create_socket(ldevs->port)) == -1)
+		if ((c_socket->listener = create_socket(ldevs->port,
+			ldevs->bind_interface)) == -1)
 			return -1;
 	}
 
 	return 0;
 }
 
+/* interface selection in getaddrinfo */
 int
-create_socket(char *port)
+create_socket(char *port, char *b_iface)
 {
-	int sock_fd;
+	int 			 sock_fd;
+	char			*iface = NULL;
 	struct addrinfo addr_hints, *addr_res, *loop_res;
 
 	int gai, o_val = 1;
@@ -62,16 +81,34 @@ create_socket(char *port)
 	addr_hints.ai_family = AF_UNSPEC;
 	addr_hints.ai_socktype = SOCK_STREAM;
 	addr_hints.ai_flags |= AI_PASSIVE;
+	/* do interface stuff here */
+	/* getifaddrs */
+	if (b_iface != '\0') {
+		iface = b_iface;
+	} else {
+		if ((strcmp(bind_interface, "0")) == 0) {
+			iface = NULL;
+		} else {
+			
+		}
+	}
+	
 	/* get addrs */
-	if((gai = getaddrinfo(NULL, port, &addr_hints, &addr_res)) != 0) {
+	if((gai = getaddrinfo(iface, port, &addr_hints, &addr_res)) != 0) {
 		fatalx("getaddrinfo failed: %s", gai_strerror(gai));
 		return -1;
 	}
+
+
+
+
 	/* bind loop*/
 	for(loop_res = addr_res; loop_res != NULL; loop_res = loop_res->ai_next) {
 		if((sock_fd = socket(loop_res->ai_family, loop_res->ai_socktype,
-			loop_res->ai_protocol)) == -1)
-			continue;
+			loop_res->ai_protocol)) == -1) {
+			fatalx("unable to create socket");
+			return -1;
+		}
 
 		if(setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &o_val,
 			sizeof(int)) == -1) {
@@ -82,7 +119,8 @@ create_socket(char *port)
 
 		if(bind(sock_fd, loop_res->ai_addr, loop_res->ai_addrlen) == -1) {
 			close(sock_fd);
-			continue;
+			fatalx("unable to bind address");
+			return -1;
 		}
 		break;
 	}
@@ -94,9 +132,9 @@ create_socket(char *port)
 	}
 
 	freeaddrinfo(addr_res);
-	/* error after max_clients reached */
-	if(listen(sock_fd, max_clients) == -1) {
-		fatalx("socket error");
+	/* error if MAX_REQS reached */
+	if(listen(sock_fd, MAX_REQS) == -1) {
+		fatalx("unable to listen on socket");
 		return -1;
 	}
 

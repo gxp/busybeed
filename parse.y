@@ -56,6 +56,7 @@ int		 findeol(void);
 
 struct busybeed_conf		*conf;
 char				*default_port = NULL;
+char				*bind_interface = NULL;
 extern int			 max_clients, max_subscriptions;
 const char			*parity[4] = {"none", "odd", "even", "space"};
 const int			 baudrates[18] = {50, 75, 110, 134, 150, 200,
@@ -80,7 +81,7 @@ typedef struct {
 
 %token	BAUD DATA PARITY STOP HARDWARE SOFTWARE PASSWORD
 %token	DEVICE LISTEN LOCATION
-%token	DEFAULT PORT MAX CLIENTS SUBSCRIPTIONS
+%token	DEFAULT PORT MAX CLIENTS SUBSCRIPTIONS BIND INTERFACE
 %token	ERROR
 %token	<v.string>		STRING
 %token	<v.number>		NUMBER
@@ -100,6 +101,9 @@ main		: DEFAULT PORT STRING {
 		}
 		| MAX SUBSCRIPTIONS NUMBER {
 			max_subscriptions = $3;
+		}
+		| BIND INTERFACE STRING {
+			bind_interface = $3;
 		}
 		;
 locopts2	: locopts2 locopts1 nl
@@ -168,6 +172,9 @@ locopts1	: LISTEN STRING PORT STRING {
 		| PASSWORD STRING {
 			currentdevice->password = $2;
 		}
+		| BIND INTERFACE STRING {
+			currentdevice->bind_interface = $3;
+		}
 		;
 locopts		: /* empty */
 		|  '{' optnl locopts2 '}'
@@ -183,6 +190,7 @@ device		: DEVICE STRING	 {
 			currentdevice = 		new_device($2);
 			currentdevice->port =		default_port;
 			currentdevice->baud = 		DEFAULT_BAUD;
+			currentdevice->bind_interface =	NULL;
 			currentdevice->databits =	-1;
 			currentdevice->parity =		NULL;
 			currentdevice->stopbits =	-1;
@@ -245,11 +253,13 @@ int lookup(char *s) {
 	/* this has to be sorted always */
 	static const struct keywords keywords[] = {
 		{ "baud",		BAUD},
+		{ "bind",		BIND},
 		{ "clients",		CLIENTS},
 		{ "data",		DATA},
 		{ "default",		DEFAULT},
 		{ "device",		DEVICE},
 		{ "hardware",		HARDWARE},
+		{ "interface",		INTERFACE},
 		{ "listen",		LISTEN},
 		{ "location",		LOCATION},
 		{ "max",		MAX},

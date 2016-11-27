@@ -18,15 +18,15 @@ case $DEVCLASS in
 		driver=
 		IFS="|"
 		set -A device $i
-		serial=${device[0]};
-		name=$dev${device[1]};
-		driver=$(usbdevs -dv | grep -A1 $serial | grep -v $serial | tr -s " ");
+		serial=${device[0]}
+		name=$dev${device[1]}
+		driver=$(usbdevs -dv | grep -A1 $serial | grep -v $serial | tr -s " ")
 		fndev="/dev/$name"
 		if [[ -n $driver ]]; then
-			echo "usb-serial device not in list" >> /var/log/hotplug.detach
+			logger -i "detach: usb-serial device not in list"
 		else
 			rm $fndev
-			echo "$fndev removed" >> /var/log/hotplug.detach
+			logger -i "detach: $fndev removed"
 		fi		
 	done
 ;;

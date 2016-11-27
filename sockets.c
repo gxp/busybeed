@@ -64,8 +64,7 @@ create_socket(char *port)
 	
 	if((gai = getaddrinfo(NULL, port, &ahints, &servinfo)) != 0)
 	{
-		fatalx("getaddrinfo failed");
-		fatalx(gai_strerror(gai));
+		fatalx("getaddrinfo failed: %s", gai_strerror(gai));
 		return -1;
 	}
 

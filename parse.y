@@ -190,7 +190,7 @@ device		: DEVICE STRING	 {
 			currentdevice->swctrl =		-1;
 			currentdevice->password =	NULL;
 		} '{' optnl deviceopts2 '}' {
-			if (default_port == "\0") {
+			if (default_port == '\0') {
 				yyerror("could not set default port");
 				YYERROR;
 			}

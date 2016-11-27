@@ -18,20 +18,20 @@ case $DEVCLASS in
 		driver=
 		IFS="|"
 		set -A device $i
-		serial=${device[0]};
-		name=$dev${device[1]};
+		serial=${device[0]}
+		name=$dev${device[1]}
 		driver=$(usbdevs -dv | grep -A1 $serial | grep -v $serial | tr -s " ")
 		if [[ -n $driver ]]; then
 			lndev="/dev/ttyU$(dmesg | grep $driver | tail -1 | cut -d' ' -f1 | grep -o [0-9])"
 			fndev="/dev/$name"
 			if [[ -e "$fndev" ]]; then
-				echo "usb-serial device not in list" >> /var/log/hotplug.attach;
+				logger -i "attach: usb-serial device not in list"
 			else
 				ln -s $lndev $fndev
-				echo "attached $fndev" >> /var/log/hotplug.attach;
+				logger -i "attach: attached $fndev"
 			fi
 		else
-			echo "hotplug attach error" >> /var/log/hotplug.attach
+			logger -i "attach: hotplug attach error"
 		fi
 	done
 ;;

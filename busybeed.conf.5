@@ -1,4 +1,4 @@
-.\" $OpenBSD: busybeed.8 v.1.00 2016/11/20 15:41:17 baseprime Exp $
+.\"	$OpenBSD: busybeed.conf.5,v 1.0 2016/11/28 18:06:29 baseprime Exp $
 .\" 
 .\" Copyright (c) 2016 Tracey Emery <tracey@traceyemery.com>
 .\" 
@@ -13,23 +13,17 @@
 .\" WHATSOEVER RESULTING FROM LOSS OF USE, DATA OR PROFITS, WHETHER IN AN
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
-.\" 
-.Dd $Mdocdate: November 21, 2016 $
-.Dt BUSYBEED 1
+.\"
+.Dd $Mdocdate: November 28 2016 $
+.Dt BUSYBEED.CONF 5
 .Os
 .Sh NAME
-.Nm busybeed
-.Nd serial device control utility
-.Sh SYNOPSIS
-.Nm busybeed
-.Op Fl sv
-.Op Fl d Ar host : Ns Ar port
-.Op Fl f Ar device
-.Op Ar command args ...
+.Nm busybeed.conf
+.Nd busybeed daemon configuration file
 .Sh DESCRIPTION
-The
 .Nm
-program is a serial device control utility,
-with support password protection and readable names. 
-.Pp
-
+is the configuration file for the busybeed daemon,
+.Xr busybeed 8 .
+.Sh SECTIONS
+.Nm
+is divided into seven main sections:

@@ -10,6 +10,7 @@ CFLAGS+=	-Wmissing-declarations
 CFLAGS+=	-Wshadow -Wpointer-arith
 CFLAGS+=	-Wsign-compare
 CLEANFILES+=	y.tab.h
-MAN=		busybeed.8
+LINKS=		${BINDIR}/busbeed ${BINDIR}/bbctl
+MAN=		busybeed.8 bbctl.8
 
 .include <bsd.prog.mk>

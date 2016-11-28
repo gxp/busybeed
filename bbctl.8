@@ -1,4 +1,4 @@
-.\" $OpenBSD: busybeed.8 v.1.00 2016/11/20 15:41:17 baseprime Exp $
+.\" $OpenBSD: bbctl.8 v.1.00 2016/11/28 15:41:17 baseprime Exp $
 .\" 
 .\" Copyright (c) 2016 Tracey Emery <tracey@traceyemery.com>
 .\" 
@@ -16,13 +16,13 @@
 .\" 
 
 .Dd $Mdocdate: November 21, 2016 $
-.Dt BUSYBEED 1
+.Dt BBCTL 1
 .Os
 .Sh NAME
-.Nm busybeed
-.Nd serial device control utility
+.Nm bbctl
+.Nd busybeed control utility
 .Sh SYNOPSIS
-.Nm busybeed
+.Nm bbctl
 .Op Fl sv
 .Op Fl d Ar host : Ns Ar port
 .Op Fl f Ar device
@@ -30,7 +30,6 @@
 .Sh DESCRIPTION
 The
 .Nm
-program is a serial device control utility,
-with support password protection and readable names. 
+program is a control utility for the busybeed daemon.
 .Pp
 

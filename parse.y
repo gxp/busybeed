@@ -96,14 +96,22 @@ grammar		: /* empty */
 main		: DEFAULT PORT STRING {
 			default_port = $3;
 		}
-		| MAX CLIENTS NUMBER {
-			max_clients = $3;
-		}
+		| maxclients
 		| MAX SUBSCRIPTIONS NUMBER {
 			max_subscriptions = $3;
 		}
-		| BIND INTERFACE STRING {
+		| bindopts1
+		;
+bindopts1	: BIND INTERFACE STRING {
 			bind_interface = $3;
+		}
+		;
+bindopts2	: BIND INTERFACE STRING {
+			currentdevice->bind_interface = $3;
+		}
+		;
+maxclients	: MAX CLIENTS NUMBER {
+			max_clients = $3;
 		}
 		;
 locopts2	: locopts2 locopts1 nl
@@ -172,9 +180,8 @@ locopts1	: LISTEN STRING PORT STRING {
 		| PASSWORD STRING {
 			currentdevice->password = $2;
 		}
-		| BIND INTERFACE STRING {
-			currentdevice->bind_interface = $3;
-		}
+		| bindopts2
+		| maxclients
 		;
 locopts		: /* empty */
 		|  '{' optnl locopts2 '}'
@@ -187,16 +194,16 @@ deviceopts1	:  LOCATION STRING {
 		} locopts
 		;
 device		: DEVICE STRING	 {
-			currentdevice = 		new_device($2);
-			currentdevice->port =		default_port;
-			currentdevice->baud = 		DEFAULT_BAUD;
-			currentdevice->bind_interface =	NULL;
-			currentdevice->databits =	-1;
-			currentdevice->parity =		NULL;
-			currentdevice->stopbits =	-1;
-			currentdevice->hwctrl =		-1;
-			currentdevice->swctrl =		-1;
-			currentdevice->password =	NULL;
+			currentdevice =				new_device($2);
+			currentdevice->port =			default_port;
+			currentdevice->baud = 			DEFAULT_BAUD;
+			currentdevice->bind_interface =		NULL;
+			currentdevice->databits =		-1;
+			currentdevice->parity =			NULL;
+			currentdevice->stopbits =		-1;
+			currentdevice->hwctrl =			-1;
+			currentdevice->swctrl =			-1;
+			currentdevice->password =		NULL;
 		} '{' optnl deviceopts2 '}' {
 			if (default_port == '\0') {
 				yyerror("could not set default port");

@@ -103,10 +103,10 @@ struct s_conf {
 };
 
 /* sockets.c */
-#define MAX_REQS		 10
 extern struct sock_conf		*s_socks;
 extern int			 create_sockets(struct sock_conf *,
 							struct s_conf *);
+char				*get_ifaddrs(char *);
 
 struct s_socket			*new_socket(char *);
 

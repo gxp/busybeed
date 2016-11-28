@@ -15,6 +15,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <arpa/inet.h>
 #include <netinet/in.h>
 #include <sys/queue.h>
 #include <sys/socket.h>
@@ -29,10 +30,47 @@
 #include <string.h>
 #include <unistd.h>
 
-
 #include "busybeed.h"
 
 struct sock_conf		*s_socks;
+
+char
+*get_ifaddrs(char *name)
+{
+	struct ifaddrs *ifap, *ifa;
+	char *addr;
+
+	if (getifaddrs(&ifa) == -1)
+		fatalx("getifaddrs error");
+
+	ifap = ifa;
+
+	while (ifap) {
+		if ((ifap->ifa_addr) &&
+			((ifap->ifa_addr->sa_family == AF_INET) ||
+			(ifap->ifa_addr->sa_family == AF_INET6))) {
+
+			if (ifap->ifa_addr->sa_family == AF_INET) {
+				struct sockaddr_in *in =
+					(struct sockaddr_in*) ifap->ifa_addr;
+				addr = inet_ntoa(in->sin_addr);
+			} else {
+				getnameinfo(ifap->ifa_addr,
+					sizeof(struct sockaddr_in6), addr,
+					sizeof(addr), NULL, 0, NI_NUMERICHOST);
+			}
+
+			if (strcmp(name, ifap->ifa_name) == 0) {
+				freeifaddrs(ifap);
+				return addr;
+			}
+		}
+		ifap = ifap->ifa_next;
+	}
+
+	freeifaddrs(ifap);
+	return NULL;
+}
 
 int
 create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
@@ -40,14 +78,18 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 	struct s_device			*ldevs;
 	s_devs =			 x_devs;
 	s_socks =			 x_socks;
+	char				*iface = NULL;
 
 	TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
 		c_socket = new_socket(ldevs->port);
+
+		if (ldevs->bind_interface != '\0')
+			iface = get_ifaddrs(ldevs->bind_interface);
+
 		if ((c_socket->listener = create_socket(ldevs->port,
-			ldevs->bind_interface)) == -1)
+			iface)) == -1)
 			return -1;
 	}
-
 	return 0;
 }
 
@@ -55,50 +97,22 @@ int
 create_socket(char *port, char *b_iface)
 {
 	int 			 sock_fd;
-	char			*iface = NULL;
-	struct addrinfo addr_hints, *addr_res, *loop_res;
-
 	int gai, o_val = 1;
-
+	struct addrinfo addr_hints, *addr_res, *loop_res;
+	
 	memset(&addr_hints, 0, sizeof(addr_hints));
 	/* accept any family, use streams, and make passive */
 	addr_hints.ai_family = AF_UNSPEC;
 	addr_hints.ai_socktype = SOCK_STREAM;
 	addr_hints.ai_flags |= AI_PASSIVE;
 
-
-
-
-
-
-	/* do interface stuff here */
-	/* getifaddrs */
-	if (b_iface != '\0') {
-		iface = b_iface;
-	} else {
-		if ((strcmp(bind_interface, "0")) == 0) {
-			iface = NULL;
-		} else {
-			
-		}
-	}
-
-	/* get addrs */
-	if((gai = getaddrinfo(iface, port, &addr_hints, &addr_res)) != 0) {
+	if((gai = getaddrinfo(b_iface, port, &addr_hints, &addr_res)) != 0) {
 		fatalx("getaddrinfo failed: %s", gai_strerror(gai));
 		return -1;
 	}
 
-
-
-
-
-
-
-
-
-	/* bind loop*/
-	for(loop_res = addr_res; loop_res != NULL; loop_res = loop_res->ai_next) {
+	for(loop_res = addr_res; loop_res != NULL;
+		loop_res = loop_res->ai_next) {
 		if((sock_fd = socket(loop_res->ai_family, loop_res->ai_socktype,
 			loop_res->ai_protocol)) == -1) {
 			fatalx("unable to create socket");
@@ -112,11 +126,13 @@ create_socket(char *port, char *b_iface)
 			return -1;
 		}
 
-		if(bind(sock_fd, loop_res->ai_addr, loop_res->ai_addrlen) == -1) {
+		if(bind(sock_fd, loop_res->ai_addr,
+			loop_res->ai_addrlen) == -1) {
 			close(sock_fd);
 			fatalx("unable to bind address");
 			return -1;
 		}
+
 		break;
 	}
 
@@ -127,8 +143,8 @@ create_socket(char *port, char *b_iface)
 	}
 
 	freeaddrinfo(addr_res);
-	/* error if MAX_REQS reached */
-	if(listen(sock_fd, MAX_REQS) == -1) {
+
+	if(listen(sock_fd, SOMAXCONN) == -1) {
 		fatalx("unable to listen on socket");
 		return -1;
 	}

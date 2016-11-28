@@ -34,44 +34,6 @@
 
 struct sock_conf		*s_socks;
 
-char
-*get_ifaddrs(char *name)
-{
-	struct ifaddrs *ifap, *ifa;
-	char *addr;
-
-	if (getifaddrs(&ifa) == -1)
-		fatalx("getifaddrs error");
-
-	ifap = ifa;
-
-	while (ifap) {
-		if ((ifap->ifa_addr) &&
-			((ifap->ifa_addr->sa_family == AF_INET) ||
-			(ifap->ifa_addr->sa_family == AF_INET6))) {
-
-			if (ifap->ifa_addr->sa_family == AF_INET) {
-				struct sockaddr_in *in =
-					(struct sockaddr_in*) ifap->ifa_addr;
-				addr = inet_ntoa(in->sin_addr);
-			} else {
-				getnameinfo(ifap->ifa_addr,
-					sizeof(struct sockaddr_in6), addr,
-					sizeof(addr), NULL, 0, NI_NUMERICHOST);
-			}
-
-			if (strcmp(name, ifap->ifa_name) == 0) {
-				freeifaddrs(ifap);
-				return addr;
-			}
-		}
-		ifap = ifap->ifa_next;
-	}
-
-	freeifaddrs(ifap);
-	return NULL;
-}
-
 int
 create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 {
@@ -165,3 +127,41 @@ new_socket(char *port)
 
 	return (sock);
 };
+
+char
+*get_ifaddrs(char *name)
+{
+	struct ifaddrs *ifap, *ifa;
+	char *addr;
+	
+	if (getifaddrs(&ifa) == -1)
+		fatalx("getifaddrs error");
+	
+	ifap = ifa;
+	
+	while (ifap) {
+		if ((ifap->ifa_addr) &&
+			((ifap->ifa_addr->sa_family == AF_INET) ||
+			(ifap->ifa_addr->sa_family == AF_INET6))) {
+			
+			if (ifap->ifa_addr->sa_family == AF_INET) {
+				struct sockaddr_in *in =
+				(struct sockaddr_in*) ifap->ifa_addr;
+				addr = inet_ntoa(in->sin_addr);
+			} else {
+				getnameinfo(ifap->ifa_addr,
+					    sizeof(struct sockaddr_in6), addr,
+					    sizeof(addr), NULL, 0, NI_NUMERICHOST);
+			}
+			
+			if (strcmp(name, ifap->ifa_name) == 0) {
+				freeifaddrs(ifap);
+				return addr;
+			}
+			}
+			ifap = ifap->ifa_next;
+	}
+	
+	freeifaddrs(ifap);
+	return NULL;
+}

@@ -2,6 +2,7 @@
 
 PROG=		busybeed
 SRCS=		parse.y busybeed.c client.c log.c serial.c sockets.c
+SRCS+=		busybee.c control.c
 
 DEBUG=		-g -DDEBUG=3 -O0
 CFLAGS+=	-Wall -I${.CURDIR}
@@ -10,7 +11,8 @@ CFLAGS+=	-Wmissing-declarations
 CFLAGS+=	-Wshadow -Wpointer-arith
 CFLAGS+=	-Wsign-compare
 CLEANFILES+=	y.tab.h
-LINKS=		${BINDIR}/busbeed ${BINDIR}/busybctl
-MAN=		busybeed.8 bbctl.8 busybeed.conf.5
+#LINKS=		${BINDIR}/busybeed ${BINDIR}/busybctl
+LINKS=		busybeed busybctl
+MAN=		busybeed.8 busybctl.8 busybeed.conf.5
 
 .include <bsd.prog.mk>

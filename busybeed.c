@@ -15,9 +15,12 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/* I've taken and learned a lot from ntpd. Thank you! */
+
 #include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 #include <err.h>
 #include <errno.h>
@@ -31,15 +34,13 @@
 
 #include "busybeed.h"
 
-void		sighdlr(int);
-__dead void	usage(void);
-int		main(int, char *[]);
-int		check_child(pid_t, const char *);
-void		ctl_main(int, char*[]);
+void			 sighdlr(int);
+__dead void		 usage(void);
+int			 main(int, char *[]);
+void			 ctl_main(int, char*[]);
 
+int			 verbose = 1;
 volatile sig_atomic_t	 quit = 0;
-volatile sig_atomic_t	 reconfig = 0;
-volatile sig_atomic_t	 sigchld = 0;
 
 void
 sighdlr(int sig)
@@ -48,13 +49,8 @@ sighdlr(int sig)
 		case SIGQUIT:
 		case SIGTERM:
 		case SIGINT:
-			quit = 1;
-			break;
-		case SIGCHLD:
-			sigchld = 1;
-			break;
 		case SIGHUP:
-			reconfig = 1;
+			quit = 1;
 			break;
 	}
 }
@@ -68,7 +64,7 @@ usage(void)
 		fprintf(stderr,
 			"usage: busybctl -n name -d /dev/device etc\n");
 		else
-			fprintf(stderr, "usage: %s no non-daemon controls\n",
+			fprintf(stderr, "usage: %s [-d]\n",
 				__progname);
 			exit(1);
 }
@@ -83,17 +79,37 @@ main(int argc, char *argv[])
 	struct sock_conf		 socks;
 	struct s_socket			*lsocks;
 
+	int				 pipe_chld[2];
+	pid_t				 chld_pid = 0;
+	int				 fd_ctl, ch, bbdm = 0;
 
 	if (strcmp(__progname, "busybctl") == 0) {
 		ctl_main(argc, argv);
 		/* NOTREACHED */
 	}
 
-	memset(&sdevs, 0, sizeof(sdevs));
 	memset(&lconf, 0, sizeof(lconf));
+	while ((ch = getopt(argc, argv, "dv")) != -1) {
+		switch (ch) {
+			case 'd':
+				lconf.debug = 1;
+				break;
+			case 'v':
+				lconf.verbose++;
+				break;
+			default:
+				usage();
+				/* NOTREACHED */
+		}
+	}
+
+	memset(&sdevs, 0, sizeof(sdevs));
 	memset(&socks, 0, sizeof(socks));
 	/* log to stderr until daemonized */
 	log_init(lconf.debug ? lconf.debug : 1, LOG_DAEMON);
+
+	argc -= optind;
+	argv += optind;
 	
 	if (geteuid()) {
 		errx(1, "need root privileges");
@@ -109,33 +125,51 @@ main(int argc, char *argv[])
 	if (create_sockets(&socks, &sdevs))
 		exit(1);
 
-	/* decide if we really need to chroot and drop privileges */
-	/* fork child here */
-	/* pflogd looks to be the one to look at for proper
-	 * openbsd understanding
-	 *
-	 * it looks clean
-	 */
-	
-	log_procinit("parent");
+	if (socketpair(AF_UNIX, SOCK_STREAM, PF_UNSPEC, pipe_chld) == -1)
+		fatal("socketpair");
 
-	if (pledge("stdio tty rpath wpath inet",
-		NULL) == -1)
-		err(1, "pledge");
+	if ((fd_ctl = control_init(CTLSOCKET)) == -1)
+		fatalx("control socket init failed");
+
+	if (control_listen(fd_ctl) == -1)
+		fatalx("control socket listen failed");
+
+	/* fork child process */
+	chld_pid = busybee_main(pipe_chld, fd_ctl, &lconf, &sdevs, &socks);
 	
-	signal(SIGCHLD, sighdlr);
+	log_procinit("[priv]");
+	
+	/*exit(EXIT_SUCCESS);	*/
 	signal(SIGQUIT, sighdlr);
-	signal(SIGALRM, sighdlr);	
 	signal(SIGTERM, sighdlr);
 	signal(SIGINT, sighdlr);
 	signal(SIGHUP, sighdlr);
-	
 
-	
+	close(pipe_chld[1]);
+
+	if (pledge("stdio tty rpath wpath inet proc",
+		NULL) == -1)
+		err(1, "pledge");
+
 	while (quit == 0) {
-		sleep(10000);
-		/*quit = 1;*/
+		if (bbdm == 0) {
+			bbdm = 1;
+			log_init(lconf.debug, LOG_DAEMON);
+			log_verbose(lconf.verbose);
+			log_info("busybeed started");
+			if (!lconf.debug)
+				if (daemon(1, 0))
+					fatal("daemon");
+		}
+		
+		/* busybctl crap in here eventually */
+		/* write and recv messages with child */
+		sleep(20000);
 	}
+
+
+	if (chld_pid)
+		kill(chld_pid, SIGTERM);
 	
 	/* cleanup sockets */
 	TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry) {
@@ -148,15 +182,19 @@ main(int argc, char *argv[])
 		close(ldevs->fd);
 	}
 
-	signal(SIGCHLD, SIG_DFL);
 	log_info("busybeed terminating");
 	return 0;
 }
 
+
 void
 ctl_main(int argc, char *argv[])
 {
-/*
+	char			*sockname;
+	
+	sockname = CTLSOCKET;
+	
+/* busybctl crap
  * add devices
  * remove devices
  * look at devices
@@ -165,7 +203,8 @@ ctl_main(int argc, char *argv[])
  * kick clients
  */
 
-
+	printf("Reached control!");
+	exit(0);
 
 
 

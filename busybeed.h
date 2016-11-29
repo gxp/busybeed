@@ -19,9 +19,13 @@
 #include <sys/queue.h>
 #include <stdarg.h>
 
+#define PATH_CONF	"/etc/busybeed.conf"
+#define CTLSOCKET	"/var/run/busybeed.sock"
 
-/*#define PATH_CONF	"/etc/busybeed.conf"*/
-#define PATH_CONF	"busybeed.conf"
+enum blockmodes {
+	BM_NORMAL,
+	BM_NONBLOCK
+};
 
 /* prototypes */
 
@@ -75,11 +79,11 @@ struct device			*currentdevice;
 struct busybeed_conf {
 	TAILQ_HEAD(devices, device)	 devices;
 	int		        	 debug;
+	int		        	 verbose;
 };
 
 int				parse_config(const char *,
 					struct busybeed_conf *);
-
 /* serial.c */
 
 extern struct s_conf		*s_devs;
@@ -125,3 +129,12 @@ struct sock_conf {
 int				 create_socket(char *, char *);
 
 /* client.c */
+
+/* busybee.c */
+pid_t	 busybee_main(int[2], int, struct busybeed_conf *, struct s_conf *,
+		      struct sock_conf *);
+
+/* control.c */
+int			 	 control_init(char *);
+int			 	 control_listen(int);
+void				 session_socket_blockmode(int, enum blockmodes);

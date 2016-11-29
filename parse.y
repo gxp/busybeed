@@ -57,7 +57,7 @@ int		 findeol(void);
 struct busybeed_conf		*conf;
 char				*default_port = NULL;
 char				*bind_interface = NULL;
-extern int			 max_clients, max_subscriptions;
+extern int			 max_clients, max_subscriptions, verbose;
 const char			*parity[4] = {"none", "odd", "even", "space"};
 const int			 baudrates[18] = {50, 75, 110, 134, 150, 200,
 							300, 600, 1200, 1800,
@@ -80,7 +80,7 @@ typedef struct {
 %}
 
 %token	BAUD DATA PARITY STOP HARDWARE SOFTWARE PASSWORD
-%token	DEVICE LISTEN LOCATION
+%token	LOG VERBOSE DEVICE LISTEN LOCATION
 %token	DEFAULT PORT MAX CLIENTS SUBSCRIPTIONS BIND INTERFACE
 %token	ERROR
 %token	<v.string>		STRING
@@ -101,6 +101,11 @@ main		: DEFAULT PORT STRING {
 			max_subscriptions = $3;
 		}
 		| bindopts1
+		| logging
+		;
+logging		: LOG VERBOSE NUMBER {
+			conf->verbose = $3;
+		}
 		;
 bindopts1	: BIND INTERFACE STRING {
 			bind_interface = $3;
@@ -269,13 +274,15 @@ int lookup(char *s) {
 		{ "interface",		INTERFACE},
 		{ "listen",		LISTEN},
 		{ "location",		LOCATION},
+		{ "log",		LOG},
 		{ "max",		MAX},
 		{ "parity",		PARITY},
 		{ "password",		PASSWORD},
 		{ "port",		PORT},
 		{ "software",		SOFTWARE},
 		{ "stop",		STOP},
-		{ "subscriptions",	SUBSCRIPTIONS}
+		{ "subscriptions",	SUBSCRIPTIONS},
+		{ "verbose",		VERBOSE}
 	};
 	const struct keywords	*p;
 
@@ -548,8 +555,9 @@ popfile(void)
 int
 parse_config(const char *filename, struct busybeed_conf *xconf)
 {
-	int		 errors = 0;
-	conf =		 xconf;
+	int			 errors = 0;
+	conf =			 xconf;
+	conf->verbose = 	 verbose;
 
 	TAILQ_INIT(&conf->devices);
 

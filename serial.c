@@ -178,7 +178,8 @@ open_devices(struct s_conf *x_devs)
 			tcsetattr(fd, TCSANOW, &s_opts);
 			cs_device->password =		 devs->password;
 			cs_device->location =		 devs->devicelocation;
-			cs_device->port =		 devs->port;
+			strlcpy(cs_device->port, devs->port,
+					sizeof(cs_device->port));
 			cs_device->bind_interface =	 devs->bind_interface;
 			cs_device->fd =			 fd;
 			TAILQ_INSERT_TAIL(&s_devs->s_devices, cs_device, entry);

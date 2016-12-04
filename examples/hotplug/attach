@@ -1,9 +1,8 @@
 #!/bin/sh
 
-dev="tty."
+cdev="cua."
+tdev="tty."
 #IFS="|"
-
-// array of devices to find by iSerialNumber and a name
 
 devices[0]="A800HGEI|databee"
 
@@ -19,16 +18,21 @@ case $DEVCLASS in
 		IFS="|"
 		set -A device $i
 		serial=${device[0]}
-		name=$dev${device[1]}
+		cname=$cdev${device[1]}
+		tname=$tdev${device[1]}
 		driver=$(usbdevs -dv | grep -A1 $serial | grep -v $serial | tr -s " ")
 		if [[ -n $driver ]]; then
-			lndev="/dev/ttyU$(dmesg | grep $driver | tail -1 | cut -d' ' -f1 | grep -o [0-9])"
-			fndev="/dev/$name"
-			if [[ -e "$fndev" ]]; then
+			clndev="/dev/cuaU$(dmesg | grep $driver | tail -1 | cut -d' ' -f1 | grep -o [0-9])"
+			tlndev="/dev/ttyU$(dmesg | grep $driver | tail -1 | cut -d' ' -f1 | grep -o [0-9])"
+			cfndev="/dev/$cname"
+			tfndev="/dev/$tname"
+			if [[ -e "$cfndev" ]] || [[ -e "$tfndev" ]]; then
 				logger -i "attach: usb-serial device not in list"
 			else
-				ln -s $lndev $fndev
-				logger -i "attach: attached $fndev"
+				ln -s $clndev $cfndev
+				ln -s $tlndev $tfndev
+				logger -i "attach: attached $cfndev"
+				logger -i "attach: attached $tfndev"
 			fi
 		else
 			logger -i "attach: hotplug attach error"

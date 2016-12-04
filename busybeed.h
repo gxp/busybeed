@@ -63,7 +63,7 @@ struct device			*new_device(char *);
 struct device {
 	TAILQ_ENTRY(device)	 entry;
 	char			*name;
-	char			*port;
+	char			 port[6];
 	char			*devicelocation;
 	int			 baud;
 	int			 databits;
@@ -94,7 +94,7 @@ struct s_device			*new_s_device(char *);
 struct s_device {
 	TAILQ_ENTRY(s_device)	 	 entry;
 	int				 fd;
-	char				*port;
+	char				 port[6];
 	char				*bind_interface;
 	char				*location;
 	char				*password;
@@ -116,7 +116,7 @@ struct s_socket			*new_socket(char *);
 
 struct s_socket {
 	TAILQ_ENTRY(s_socket)		 entry;
-	char				*port;
+	char				 port[6];
 	int				 listener;
 };
 

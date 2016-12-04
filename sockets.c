@@ -122,7 +122,7 @@ new_socket(char *port)
 	if ((sock = calloc(1, sizeof(*sock))) == NULL)
 		fatalx("no s_sock calloc");
 	
-	if ((sock->port = strdup(port)) == NULL)
+	if (strlcpy(sock->port, strdup(port), sizeof(sock->port)) == '\0')
 		fatalx("no s_sock port");
 
 	return (sock);

@@ -55,7 +55,7 @@ int		 lungetc(int);
 int		 findeol(void);
 
 struct busybeed_conf		*conf;
-char				*default_port = NULL;
+char				 default_port[6];
 char				*bind_interface = NULL;
 extern int			 max_clients, max_subscriptions, verbose;
 const char			*parity[4] = {"none", "odd", "even", "space"};
@@ -72,7 +72,7 @@ int				 b_c = 0;
 
 typedef struct {
 	union {
-		int64_t			 number;
+		int			 number;
 		char			*string;
 	} v;
 	int lineno;
@@ -93,8 +93,8 @@ grammar		: /* empty */
 		| grammar main '\n'
 		| grammar error '\n' { file->errors++; }
 		;
-main		: DEFAULT PORT STRING {
-			default_port = $3;
+main		: DEFAULT PORT NUMBER {
+			snprintf(default_port, sizeof(default_port), "%d", $3);
 		}
 		| maxclients
 		| MAX SUBSCRIPTIONS NUMBER {
@@ -122,8 +122,9 @@ maxclients	: MAX CLIENTS NUMBER {
 locopts2	: locopts2 locopts1 nl
 		| locopts1 optnl
 		;
-locopts1	: LISTEN STRING PORT STRING {
-			currentdevice->port = $4;
+locopts1	: LISTEN STRING PORT NUMBER {
+			snprintf(currentdevice->port,
+				sizeof(currentdevice->port), "%d", $4);
 		}
 		| BAUD NUMBER {
 			currentdevice->baud = -1;
@@ -199,18 +200,19 @@ deviceopts1	:  LOCATION STRING {
 		} locopts
 		;
 device		: DEVICE STRING	 {
-			currentdevice =				new_device($2);
-			currentdevice->port =			default_port;
-			currentdevice->baud = 			DEFAULT_BAUD;
-			currentdevice->bind_interface =		NULL;
-			currentdevice->databits =		-1;
-			currentdevice->parity =			NULL;
-			currentdevice->stopbits =		-1;
-			currentdevice->hwctrl =			-1;
-			currentdevice->swctrl =			-1;
-			currentdevice->password =		NULL;
+			currentdevice =				 new_device($2);
+			strlcpy(currentdevice->port, default_port,
+				sizeof(currentdevice->port));
+			currentdevice->baud = 			 DEFAULT_BAUD;
+			currentdevice->bind_interface =		 NULL;
+			currentdevice->databits =		 -1;
+			currentdevice->parity =			 NULL;
+			currentdevice->stopbits =		 -1;
+			currentdevice->hwctrl =			 -1;
+			currentdevice->swctrl =			 -1;
+			currentdevice->password =		 NULL;
 		} '{' optnl deviceopts2 '}' {
-			if (default_port == '\0') {
+			if (*default_port == '\0') {
 				yyerror("could not set default port");
 				YYERROR;
 			}

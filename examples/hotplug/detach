@@ -1,9 +1,8 @@
 #!/bin/sh
 
-dev="tty."
+cdev="cua."
+tdev="tty."
 #IFS="|"
-
-// array of devices to find by iSerialNumber and a name
 
 devices[0]="A800HGEI|databee"
 
@@ -19,14 +18,18 @@ case $DEVCLASS in
 		IFS="|"
 		set -A device $i
 		serial=${device[0]}
-		name=$dev${device[1]}
+		cname=$cdev${device[1]}
+		tname=$tdev${device[1]}
 		driver=$(usbdevs -dv | grep -A1 $serial | grep -v $serial | tr -s " ")
-		fndev="/dev/$name"
+		cfndev="/dev/$cname"
+		tfndev="/dev/$tname"
 		if [[ -n $driver ]]; then
 			logger -i "detach: usb-serial device not in list"
 		else
-			rm $fndev
-			logger -i "detach: $fndev removed"
+			rm $cfndev
+			rm $tfndev
+			logger -i "detach: $cfndev removed"
+			logger -i "detach: $tfndev removed"
 		fi		
 	done
 ;;

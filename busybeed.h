@@ -112,7 +112,7 @@ struct s_conf {
 extern struct sock_conf		*s_socks;
 extern int			 create_sockets(struct sock_conf *,
 							struct s_conf *);
-char				*get_ifaddrs(char *);
+extern char			*get_ifaddrs(char *);
 
 struct s_socket			*new_socket(char *);
 
@@ -129,6 +129,7 @@ struct sock_conf {
 };
 
 int				 create_socket(char *, char *);
+int				 open_client_socket(char *, int);
 
 /* client.c */
 

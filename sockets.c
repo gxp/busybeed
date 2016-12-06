@@ -56,10 +56,49 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 }
 
 int
+open_client_socket(char *ip_addr, int xport)
+{
+	int				 client_fd, cport;
+	char				*sockaddr;
+	
+	struct hostent			*server;
+	struct sockaddr_in		 servaddr;
+
+	sockaddr = ip_addr;
+	cport = xport;
+	client_fd = socket(AF_INET, SOCK_STREAM, 0);
+	if (client_fd == -1) {
+		log_warnx("failed to open sock_stream");
+		return(-1);
+	}
+	server = gethostbyname(ip_addr);
+	if (server == NULL) {
+		log_warn("no such host");
+		return(-1);
+	}
+
+	bzero((char *)&servaddr,sizeof(servaddr));
+	bcopy((char *)server->h_addr, 
+	      (char *)&servaddr.sin_addr.s_addr,
+	      server->h_length);
+	
+	servaddr.sin_family =		 AF_INET;
+	servaddr.sin_port =		 htons(cport);
+	inet_pton(AF_INET, sockaddr,
+		  &(servaddr.sin_addr));
+
+	if (connect(client_fd, (struct sockaddr *)&servaddr,
+		sizeof(servaddr)) == -1)
+		fatalx("can't connect ip: %s", sockaddr);
+
+	return client_fd;
+}
+
+int
 create_socket(char *port, char *b_iface)
 {
 	int 			 sock_fd;
-	int gai, o_val = 1;
+	int			 gai, o_val = 1;
 	struct addrinfo addr_hints, *addr_res, *loop_res;
 	
 	memset(&addr_hints, 0, sizeof(addr_hints));

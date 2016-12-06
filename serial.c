@@ -15,13 +15,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-#include <arpa/inet.h>
-#include <sys/socket.h>
 #include <sys/types.h>
 
 #include <errno.h>
 #include <fcntl.h>
-#include <netdb.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -201,18 +198,11 @@ open_devices(struct s_conf *x_devs)
 		}
 		if (devs->sockaddr != '\0') {
 			/* create client socket and fd */
-			struct sockaddr_in		servaddr;
-			fd = socket(AF_INET, SOCK_STREAM, 0);
-			bzero(&servaddr,sizeof(servaddr));
-			
-			servaddr.sin_family =		 AF_INET;
-			servaddr.sin_port =		 devs->cport;
-			inet_pton(AF_INET, devs->sockaddr,
-					&(servaddr.sin_addr));
-			if (connect(fd, (struct sockaddr *)&servaddr,
-					sizeof(servaddr)) == -1)
-				fatalx("can't connect ip: %s", devs->sockaddr);
-			cs_device->fd =			 fd;
+			/*https://vcansimplify.wordpress.com/2013/03/14/c-socket-tutorial-echo-server/*/
+
+			cs_device->fd = 		 open_client_socket(
+								devs->sockaddr,
+								devs->cport);
 			cs_device->password =	 	 devs->password;
 		}
 	}

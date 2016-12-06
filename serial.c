@@ -188,9 +188,9 @@ open_devices(struct s_conf *x_devs)
 				cs_device->fd =		 fd;
 			}
 		}
-		if (devs->sockaddr != '\0') {
-		/* create fd for sockaddr instead of serial device */
-			cs_device->fd = open_client_socket(devs->sockaddr,
+		if (devs->ipaddr != '\0') {
+		/* create fd for ipaddr instead of serial device */
+			cs_device->fd = open_client_socket(devs->ipaddr,
 								devs->cport);
 		}
 		if (cs_device->fd == '\0') {
@@ -198,7 +198,7 @@ open_devices(struct s_conf *x_devs)
 		}
 		cs_device->password =		 devs->password;
 		cs_device->location =		 devs->devicelocation;
-		cs_device->sockaddr =		 devs->sockaddr;
+		cs_device->ipaddr =		 devs->ipaddr;
 		cs_device->cport =		 devs->cport;
 		cs_device->max_clients = 	 devs->max_clients;
 		strlcpy(cs_device->port, devs->port,

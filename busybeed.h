@@ -67,7 +67,7 @@ struct device {
 	int			 max_clients;
 	int			 cport;
 	char			*devicelocation;
-	char			*sockaddr;
+	char			*ipaddr;
 	int			 baud;
 	int			 databits;
 	char			*parity;
@@ -101,7 +101,7 @@ struct s_device {
 	int				 cport;
 	int				 max_clients;
 	char				*bind_interface;
-	char				*sockaddr;
+	char				*ipaddr;
 	char				*location;
 	char				*password;
 	char				*name;

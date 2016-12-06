@@ -80,7 +80,7 @@ typedef struct {
 %}
 
 %token	BAUD DATA PARITY STOP HARDWARE SOFTWARE PASSWORD
-%token	LOG VERBOSE CONNECT DEVICE LISTEN LOCATION SOCKADDR
+%token	LOG VERBOSE CONNECT DEVICE LISTEN LOCATION IPADDR
 %token	DEFAULT PORT MAX CLIENTS SUBSCRIPTIONS BIND INTERFACE
 %token	ERROR
 %token	<v.string>		STRING
@@ -221,14 +221,14 @@ deviceopts2	: deviceopts2 deviceopts1 nl
 deviceopts1	:  LOCATION STRING {
 			currentdevice->devicelocation = $2;
 		} locopts
-		| SOCKADDR STRING {
-			currentdevice->sockaddr = $2;
+		| IPADDR STRING {
+			currentdevice->ipaddr = $2;
 		} '{' optnl socopts2 '}'
 		;
 device		: DEVICE STRING	 {
 			currentdevice =				 new_device($2);
 			currentdevice->devicelocation =		 NULL;
-			currentdevice->sockaddr =		 NULL;
+			currentdevice->ipaddr =		 NULL;
 			currentdevice->max_clients =		 max_clients;
 			strlcpy(currentdevice->port, default_port,
 				sizeof(currentdevice->port));
@@ -242,12 +242,12 @@ device		: DEVICE STRING	 {
 			currentdevice->swctrl =			 -1;
 			currentdevice->password =		 NULL;
 		} '{' optnl deviceopts2 '}' {
-			if (currentdevice->sockaddr != '\0' &&
+			if (currentdevice->ipaddr != '\0' &&
 				currentdevice->cport == -1) {
-				yyerror("sockaddr connect port empty");
+				yyerror("ipaddr connect port empty");
 				YYERROR;
 			}
-			if (currentdevice->sockaddr != '\0' &&
+			if (currentdevice->ipaddr != '\0' &&
 				currentdevice->devicelocation != '\0') {
 				yyerror("too many device arguments");
 				YYERROR;
@@ -316,6 +316,7 @@ int lookup(char *s) {
 		{ "device",		DEVICE},
 		{ "hardware",		HARDWARE},
 		{ "interface",		INTERFACE},
+		{ "ipaddr",		IPADDR},
 		{ "listen",		LISTEN},
 		{ "location",		LOCATION},
 		{ "log",		LOG},
@@ -323,7 +324,6 @@ int lookup(char *s) {
 		{ "parity",		PARITY},
 		{ "password",		PASSWORD},
 		{ "port",		PORT},
-		{ "sockaddr",		SOCKADDR},
 		{ "software",		SOFTWARE},
 		{ "stop",		STOP},
 		{ "subscriptions",	SUBSCRIPTIONS},

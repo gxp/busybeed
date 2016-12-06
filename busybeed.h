@@ -97,7 +97,9 @@ struct s_device {
 	TAILQ_ENTRY(s_device)	 	 entry;
 	int				 fd;
 	char				 port[6];
+	int				 cport;
 	char				*bind_interface;
+	char				*sockaddr;
 	char				*location;
 	char				*password;
 	char				*name;

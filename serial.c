@@ -185,26 +185,24 @@ open_devices(struct s_conf *x_devs)
 				s_opts.c_oflag &= ~OPOST;
 				/* Set the new options for the port */
 				tcsetattr(fd, TCSANOW, &s_opts);
-				cs_device->password =	 devs->password;
-				cs_device->location =	 devs->devicelocation;
-				strlcpy(cs_device->port, devs->port,
-						sizeof(cs_device->port));
-				cs_device->bind_interface =
-							 devs->bind_interface;
 				cs_device->fd =		 fd;
-				TAILQ_INSERT_TAIL(&s_devs->s_devices,
-							cs_device, entry);
 			}
 		}
 		if (devs->sockaddr != '\0') {
-			/* create client socket and fd */
-			/*https://vcansimplify.wordpress.com/2013/03/14/c-socket-tutorial-echo-server/*/
-
-			cs_device->fd = 		 open_client_socket(
-								devs->sockaddr,
+		/* create fd for sockaddr instead of serial device */
+			cs_device->fd = open_client_socket(devs->sockaddr,
 								devs->cport);
-			cs_device->password =	 	 devs->password;
 		}
+		cs_device->password =		 devs->password;
+		cs_device->location =		 devs->devicelocation;
+		cs_device->sockaddr =		 devs->sockaddr;
+		cs_device->cport =		 devs->cport;
+		strlcpy(cs_device->port, devs->port,
+			sizeof(cs_device->port));
+		cs_device->bind_interface =	 devs->bind_interface;
+
+		TAILQ_INSERT_TAIL(&s_devs->s_devices,
+				  cs_device, entry);
 	}
 	return 0;
 }
@@ -213,12 +211,12 @@ struct s_device *
 new_s_device(char *name)
 {
 	struct s_device	*dev;
-	
+
 	if ((dev = calloc(1, sizeof(*dev))) == NULL)
 		fatalx("no s_dev calloc");
-	
+
 	if ((dev->name = strdup(name)) == NULL)
 		fatalx("no s_dev name");
-	
+
 	return (dev);
 };

@@ -60,9 +60,9 @@ char				*bind_interface = NULL;
 extern int			 max_clients, max_subscriptions, verbose;
 const char			*parity[4] = {"none", "odd", "even", "space"};
 const int			 baudrates[18] = {50, 75, 110, 134, 150, 200,
-							300, 600, 1200, 1800,
-							2400, 4800, 9600, 38400,
-							57600, 76800, 115200};
+						  300, 600, 1200, 1800, 2400,
+						  4800, 9600, 38400, 57600,
+						  76800, 115200};
 const int			 s_parity =
 					(sizeof(parity)/sizeof(const char *));
 const int			 c_bauds =
@@ -80,7 +80,7 @@ typedef struct {
 %}
 
 %token	BAUD DATA PARITY STOP HARDWARE SOFTWARE PASSWORD
-%token	LOG VERBOSE DEVICE LISTEN LOCATION
+%token	LOG VERBOSE CONNECT DEVICE LISTEN LOCATION SOCKADDR
 %token	DEFAULT PORT MAX CLIENTS SUBSCRIPTIONS BIND INTERFACE
 %token	ERROR
 %token	<v.string>		STRING
@@ -89,7 +89,6 @@ typedef struct {
 %%
 grammar		: /* empty */
 		| grammar '\n'
-		| grammar device '\n'
 		| grammar main '\n'
 		| grammar error '\n' { file->errors++; }
 		;
@@ -97,11 +96,10 @@ main		: DEFAULT PORT NUMBER {
 			snprintf(default_port, sizeof(default_port), "%d", $3);
 		}
 		| maxclients
-		| MAX SUBSCRIPTIONS NUMBER {
-			max_subscriptions = $3;
-		}
+		| maxsubs
 		| bindopts1
 		| logging
+		| device
 		;
 logging		: LOG VERBOSE NUMBER {
 			conf->verbose = $3;
@@ -118,6 +116,13 @@ bindopts2	: BIND INTERFACE STRING {
 maxclients	: MAX CLIENTS NUMBER {
 			max_clients = $3;
 		}
+		;
+maxsubs		: MAX SUBSCRIPTIONS NUMBER {
+			max_subscriptions = $3;
+		}
+		;
+locopts		: /* empty */
+		|  '{' optnl locopts2 '}'
 		;
 locopts2	: locopts2 locopts1 nl
 		| locopts1 optnl
@@ -189,8 +194,22 @@ locopts1	: LISTEN STRING PORT NUMBER {
 		| bindopts2
 		| maxclients
 		;
-locopts		: /* empty */
-		|  '{' optnl locopts2 '}'
+socopts2	: socopts2 socopts1 nl
+		| socopts1 optnl
+		;
+socopts1	: LISTEN STRING PORT NUMBER {
+			snprintf(currentdevice->port,
+				sizeof(currentdevice->port), "%d", $4);
+		}
+		| CONNECT STRING PORT NUMBER {
+			currentdevice->cport = $4;
+			/*snprintf(currentdevice->cport,
+				 sizeof(currentdevice->cport), "%d", $4);*/
+		}
+		| PASSWORD STRING {
+			currentdevice->password = $2;
+		}
+		| maxclients
 		;
 deviceopts2	: deviceopts2 deviceopts1 nl
 		| deviceopts1 optnl
@@ -198,13 +217,19 @@ deviceopts2	: deviceopts2 deviceopts1 nl
 deviceopts1	:  LOCATION STRING {
 			currentdevice->devicelocation = $2;
 		} locopts
+		| SOCKADDR STRING {
+			currentdevice->sockaddr = $2;
+		} '{' optnl socopts2 '}'
 		;
 device		: DEVICE STRING	 {
 			currentdevice =				 new_device($2);
+			currentdevice->devicelocation =		 NULL;
+			currentdevice->sockaddr =		 NULL;
 			strlcpy(currentdevice->port, default_port,
 				sizeof(currentdevice->port));
 			currentdevice->baud = 			 DEFAULT_BAUD;
 			currentdevice->bind_interface =		 NULL;
+			currentdevice->cport =			 -1;
 			currentdevice->databits =		 -1;
 			currentdevice->parity =			 NULL;
 			currentdevice->stopbits =		 -1;
@@ -212,6 +237,16 @@ device		: DEVICE STRING	 {
 			currentdevice->swctrl =			 -1;
 			currentdevice->password =		 NULL;
 		} '{' optnl deviceopts2 '}' {
+			if (currentdevice->sockaddr != '\0' &&
+				currentdevice->cport == -1) {
+				yyerror("sockaddr connect port empty");
+				YYERROR;
+			}
+			if (currentdevice->sockaddr != '\0' &&
+				currentdevice->devicelocation != '\0') {
+				yyerror("too many device arguments");
+				YYERROR;
+			}
 			if (*default_port == '\0') {
 				yyerror("could not set default port");
 				YYERROR;
@@ -269,6 +304,7 @@ int lookup(char *s) {
 		{ "baud",		BAUD},
 		{ "bind",		BIND},
 		{ "clients",		CLIENTS},
+		{ "connect",		CONNECT},
 		{ "data",		DATA},
 		{ "default",		DEFAULT},
 		{ "device",		DEVICE},
@@ -281,6 +317,7 @@ int lookup(char *s) {
 		{ "parity",		PARITY},
 		{ "password",		PASSWORD},
 		{ "port",		PORT},
+		{ "sockaddr",		SOCKADDR},
 		{ "software",		SOFTWARE},
 		{ "stop",		STOP},
 		{ "subscriptions",	SUBSCRIPTIONS},

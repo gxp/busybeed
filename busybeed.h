@@ -64,7 +64,9 @@ struct device {
 	TAILQ_ENTRY(device)	 entry;
 	char			*name;
 	char			 port[6];
+	int			 cport;
 	char			*devicelocation;
+	char			*sockaddr;
 	int			 baud;
 	int			 databits;
 	char			*parity;

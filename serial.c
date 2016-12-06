@@ -193,10 +193,14 @@ open_devices(struct s_conf *x_devs)
 			cs_device->fd = open_client_socket(devs->sockaddr,
 								devs->cport);
 		}
+		if (cs_device->fd == '\0') {
+			fatalx("something went wrong setting fd");
+		}
 		cs_device->password =		 devs->password;
 		cs_device->location =		 devs->devicelocation;
 		cs_device->sockaddr =		 devs->sockaddr;
 		cs_device->cport =		 devs->cport;
+		cs_device->max_clients = 	 devs->max_clients;
 		strlcpy(cs_device->port, devs->port,
 			sizeof(cs_device->port));
 		cs_device->bind_interface =	 devs->bind_interface;

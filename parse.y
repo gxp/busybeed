@@ -117,6 +117,10 @@ maxclients	: MAX CLIENTS NUMBER {
 			max_clients = $3;
 		}
 		;
+maxclientssub	: MAX CLIENTS NUMBER {
+			currentdevice->max_clients = $3;
+		}
+		;
 maxsubs		: MAX SUBSCRIPTIONS NUMBER {
 			max_subscriptions = $3;
 		}
@@ -192,7 +196,7 @@ locopts1	: LISTEN STRING PORT NUMBER {
 			currentdevice->password = $2;
 		}
 		| bindopts2
-		| maxclients
+		| maxclientssub
 		;
 socopts2	: socopts2 socopts1 nl
 		| socopts1 optnl
@@ -209,7 +213,7 @@ socopts1	: LISTEN STRING PORT NUMBER {
 		| PASSWORD STRING {
 			currentdevice->password = $2;
 		}
-		| maxclients
+		| maxclientssub
 		;
 deviceopts2	: deviceopts2 deviceopts1 nl
 		| deviceopts1 optnl
@@ -225,6 +229,7 @@ device		: DEVICE STRING	 {
 			currentdevice =				 new_device($2);
 			currentdevice->devicelocation =		 NULL;
 			currentdevice->sockaddr =		 NULL;
+			currentdevice->max_clients =		 max_clients;
 			strlcpy(currentdevice->port, default_port,
 				sizeof(currentdevice->port));
 			currentdevice->baud = 			 DEFAULT_BAUD;
@@ -259,6 +264,7 @@ device		: DEVICE STRING	 {
 				yyerror("could not set max subscriptions");
 				YYERROR;
 			}
+
 			TAILQ_INSERT_TAIL(&conf->devices, currentdevice, entry);
 			currentdevice = NULL;
 		}

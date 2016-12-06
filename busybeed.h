@@ -64,6 +64,7 @@ struct device {
 	TAILQ_ENTRY(device)	 entry;
 	char			*name;
 	char			 port[6];
+	int			 max_clients;
 	int			 cport;
 	char			*devicelocation;
 	char			*sockaddr;
@@ -98,6 +99,7 @@ struct s_device {
 	int				 fd;
 	char				 port[6];
 	int				 cport;
+	int				 max_clients;
 	char				*bind_interface;
 	char				*sockaddr;
 	char				*location;

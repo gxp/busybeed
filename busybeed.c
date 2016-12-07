@@ -167,7 +167,6 @@ main(int argc, char *argv[])
 		sleep(20000);
 	}
 
-
 	if (chld_pid)
 		kill(chld_pid, SIGTERM);
 	
@@ -186,14 +185,12 @@ main(int argc, char *argv[])
 	return 0;
 }
 
-
 void
 ctl_main(int argc, char *argv[])
 {
 	char			*sockname;
-	
-	sockname = CTLSOCKET;
-	
+	sockname =		 CTLSOCKET;
+
 /* busybctl crap
  * add devices
  * remove devices
@@ -205,7 +202,4 @@ ctl_main(int argc, char *argv[])
 
 	printf("Reached control!");
 	exit(0);
-
-
-
 }

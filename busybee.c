@@ -15,8 +15,11 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <sys/queue.h>
+
 #include <err.h>
 #include <errno.h>
+#include <poll.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -68,7 +71,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *bconf,
 
 	while (bb_quit == 0) {
 		/* poll for connections and setup clients */
-		sleep(10000);
+		sleep(30000);
 	}
 	_exit(0);
 }

@@ -1,8 +1,9 @@
-/*	$OpenBSD: control.c,v 1.9 2015/12/05 13:12:16 claudio Exp $ */
+/*	$OpenBSD: control.c,v 1.0 2016/12/06 17:12:22 baseprime Exp $ */
 
 /*
  * Copyright (c) 2003, 2004 Henning Brauer <henning@openbsd.org>
  * Copyright (c) 2012 Mike Miller <mmiller@mgm51.com>
+ * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.com>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above

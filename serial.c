@@ -38,10 +38,10 @@ open_devices(struct s_conf *x_devs)
 	int				 stop = 0;
 
 	struct				 termios s_opts;
-	
+
 	s_devs = x_devs;
 	TAILQ_INIT(&s_devs->s_devices);
-	
+
 	struct device			*devs;
 	TAILQ_FOREACH(devs, &conf->devices, entry) {
 		cs_device = new_s_device(devs->name);
@@ -188,11 +188,15 @@ open_devices(struct s_conf *x_devs)
 				cs_device->fd =		 fd;
 			}
 		}
+
 		if (devs->ipaddr != '\0') {
 		/* create fd for ipaddr instead of serial device */
-			cs_device->fd = open_client_socket(devs->ipaddr,
-								devs->cport);
+			if((cs_device->fd =
+				open_client_socket(
+					devs->ipaddr, devs->cport)) == -1)
+				exit(1);
 		}
+
 		if (cs_device->fd == '\0') {
 			fatalx("something went wrong setting fd");
 		}

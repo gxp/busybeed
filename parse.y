@@ -228,12 +228,12 @@ deviceopts1	:  LOCATION STRING {
 device		: DEVICE STRING	 {
 			currentdevice =				 new_device($2);
 			currentdevice->devicelocation =		 NULL;
-			currentdevice->ipaddr =		 NULL;
+			currentdevice->ipaddr =			 NULL;
 			currentdevice->max_clients =		 max_clients;
 			strlcpy(currentdevice->port, default_port,
 				sizeof(currentdevice->port));
 			currentdevice->baud = 			 DEFAULT_BAUD;
-			currentdevice->bind_interface =		 NULL;
+			currentdevice->bind_interface =		 bind_interface;
 			currentdevice->cport =			 -1;
 			currentdevice->databits =		 -1;
 			currentdevice->parity =			 NULL;

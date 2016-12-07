@@ -31,7 +31,7 @@ enum blockmodes {
 
 /* busybeed.c */
 extern struct busybeed_conf 	*conf;
-extern char			*__progname;	/* from crt0.o */
+extern char			*__progname;
 extern int			 max_clients, max_subscriptions;
 
 /* log.c */
@@ -85,8 +85,9 @@ struct busybeed_conf {
 	int		        	 verbose;
 };
 
-int				parse_config(const char *,
+int				 parse_config(const char *,
 					struct busybeed_conf *);
+
 /* serial.c */
 
 extern struct s_conf		*s_devs;
@@ -95,16 +96,17 @@ extern int			 open_devices(struct s_conf *);
 struct s_device			*new_s_device(char *);
 
 struct s_device {
-	TAILQ_ENTRY(s_device)	 	 entry;
-	int				 fd;
-	char				 port[6];
-	int				 cport;
-	int				 max_clients;
-	char				*bind_interface;
-	char				*ipaddr;
-	char				*location;
-	char				*password;
-	char				*name;
+	TAILQ_ENTRY(s_device)	  entry;
+	int			 fd;
+	char			 port[6];
+	int			 cport;
+	int			 max_clients;
+	int			 listener;
+	char			*bind_interface;
+	char			*ipaddr;
+	char			*location;
+	char			*password;
+	char			*name;
 };
 struct s_device			*cs_device;
 
@@ -121,9 +123,9 @@ extern char			*get_ifaddrs(char *);
 struct s_socket			*new_socket(char *);
 
 struct s_socket {
-	TAILQ_ENTRY(s_socket)		 entry;
-	char				 port[6];
-	int				 listener;
+	TAILQ_ENTRY(s_socket)	 entry;
+	char			 port[6];
+	int			 listener;
 };
 
 struct s_socket			*c_socket;

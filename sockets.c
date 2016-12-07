@@ -14,6 +14,7 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
+/* Someday, add ipv6 to this. Who cares right now. What a hassle. */
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -38,19 +39,49 @@ int
 create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 {
 	struct s_device			*ldevs;
+	struct s_socket			*lsocks;
 	s_devs =			 x_devs;
 	s_socks =			 x_socks;
 	char				*iface = NULL;
+	int				 sock_r, listener;
+	int				 fail = 0;
+
+	TAILQ_INIT(&s_socks->s_sockets);
 
 	TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
 		c_socket = new_socket(ldevs->port);
-
 		if (ldevs->bind_interface != '\0')
 			iface = get_ifaddrs(ldevs->bind_interface);
 
-		if ((c_socket->listener = create_socket(ldevs->port,
-			iface)) == -1)
+		if (strlcpy(c_socket->port, ldevs->port, sizeof(c_socket->port))
+			== '\0')
+			fatalx("port copy failure");
+
+		sock_r = c_socket->listener = create_socket(ldevs->port, iface);
+		if ( sock_r == -1) {
 			return -1;
+		} else if (sock_r == -2) {
+			fail = 0;
+			TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry) {
+				if (strcmp(ldevs->port, lsocks->port) == 0) {
+					listener = lsocks->listener;
+					fail = 0;
+					break;
+				} else {
+					fail = 1;
+				}
+			}
+			if (fail == 1) {
+				fatalx("can't find listener");
+				return -1;
+			}
+		} else {
+			listener =  c_socket->listener;
+		}
+
+		ldevs->listener = listener;
+
+		TAILQ_INSERT_TAIL(&s_socks->s_sockets, c_socket, entry);
 	}
 	return 0;
 }
@@ -61,7 +92,7 @@ create_socket(char *port, char *b_iface)
 	int 			 sock_fd;
 	int			 gai, o_val = 1;
 	struct addrinfo addr_hints, *addr_res, *loop_res;
-	
+
 	memset(&addr_hints, 0, sizeof(addr_hints));
 	/* accept any family, use streams, and make passive */
 	addr_hints.ai_family = AF_UNSPEC;
@@ -75,6 +106,7 @@ create_socket(char *port, char *b_iface)
 
 	for(loop_res = addr_res; loop_res != NULL;
 		loop_res = loop_res->ai_next) {
+
 		if((sock_fd = socket(loop_res->ai_family, loop_res->ai_socktype,
 			loop_res->ai_protocol)) == -1) {
 			fatalx("unable to create socket");
@@ -91,8 +123,9 @@ create_socket(char *port, char *b_iface)
 		if(bind(sock_fd, loop_res->ai_addr,
 			loop_res->ai_addrlen) == -1) {
 			close(sock_fd);
-			fatalx("unable to bind address");
-			return -1;
+			log_warnx("%s%s", "bind address busy\n",
+						" -checking existing sockets");
+			return -2;
 		}
 
 		break;
@@ -126,11 +159,13 @@ open_client_socket(char *ip_addr, int xport)
 	sockaddr = ip_addr;
 	cport = xport;
 	client_fd = socket(AF_INET, SOCK_STREAM, 0);
+
 	if (client_fd == -1) {
 		log_warnx("failed to open sock_stream");
 		return(-1);
 	}
 	server = gethostbyname(ip_addr);
+
 	if (server == NULL) {
 		log_warn("no such host");
 		return(-1);
@@ -145,11 +180,11 @@ open_client_socket(char *ip_addr, int xport)
 	servaddr.sin_port =		 htons(cport);
 	inet_pton(AF_INET, sockaddr,
 		  &(servaddr.sin_addr));
-	
+
 	if (connect(client_fd, (struct sockaddr *)&servaddr,
 		sizeof(servaddr)) == -1)
 		fatalx("can't connect ip: %s", sockaddr);
-	
+
 	return client_fd;
 }
 
@@ -172,7 +207,8 @@ char
 {
 	struct ifaddrs *ifap, *ifa;
 	char *addr;
-	
+	memset(&addr, 0, sizeof(addr));
+
 	if (getifaddrs(&ifa) == -1)
 		fatalx("getifaddrs error");
 
@@ -188,12 +224,12 @@ char
 				(struct sockaddr_in*) ifap->ifa_addr;
 				addr = inet_ntoa(in->sin_addr);
 			} else {
-				getnameinfo(ifap->ifa_addr,
-					sizeof(struct sockaddr_in6), addr,
-					sizeof(addr), NULL, 0, NI_NUMERICHOST);
+				/*struct sockaddr_in6 *in6 =
+				(struct sockaddr_in6*) ifap->ifa_addr;*/
 			}
 
-			if (strcmp(name, ifap->ifa_name) == 0) {
+			if ((strcmp(name, ifap->ifa_name) == 0) &&
+				addr != '\0') {
 				freeifaddrs(ifap);
 				return addr;
 			}

@@ -61,14 +61,12 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 		if ( sock_r == -1) {
 			return -1;
 		} else if (sock_r == -2) {
-			fail = 0;
+			fail = 1;
 			TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry) {
 				if (strcmp(ldevs->port, lsocks->port) == 0) {
 					listener = lsocks->listener;
 					fail = 0;
 					break;
-				} else {
-					fail = 1;
 				}
 			}
 			if (fail == 1) {

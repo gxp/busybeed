@@ -115,7 +115,7 @@ create_socket(char *port, char *b_iface)
 			sizeof(int)) == -1) {
 			fatalx("setsockopt error");
 			freeaddrinfo(addr_res);
-			return -1;
+			return -1; 
 		}
 
 		if(bind(sock_fd, loop_res->ai_addr,

@@ -50,6 +50,7 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 
 	TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
 		c_socket = new_socket(ldevs->port);
+		printf("If: %s\n", ldevs->bind_interface);
 		if (ldevs->bind_interface != '\0')
 			iface = get_ifaddrs(ldevs->bind_interface);
 

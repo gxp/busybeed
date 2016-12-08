@@ -228,7 +228,7 @@ char
 				/*struct sockaddr_in6 *in6 =
 				(struct sockaddr_in6*) ifap->ifa_addr;*/
 			}
-
+printf("Addr: %s\n", addr);
 			if ((strcmp(name, ifap->ifa_name) == 0) &&
 				addr != '\0') {
 				return addr;

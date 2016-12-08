@@ -233,7 +233,7 @@ device		: DEVICE STRING	 {
 			strlcpy(currentdevice->port, default_port,
 				sizeof(currentdevice->port));
 			currentdevice->baud = 			 DEFAULT_BAUD;
-			currentdevice->bind_interface =		 bind_interface;
+			currentdevice->bind_interface =		 NULL;
 			currentdevice->cport =			 -1;
 			currentdevice->databits =		 -1;
 			currentdevice->parity =			 NULL;
@@ -264,7 +264,6 @@ device		: DEVICE STRING	 {
 				yyerror("could not set max subscriptions");
 				YYERROR;
 			}
-
 			TAILQ_INSERT_TAIL(&conf->devices, currentdevice, entry);
 			currentdevice = NULL;
 		}

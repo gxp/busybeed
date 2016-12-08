@@ -50,10 +50,14 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 
 	TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
 		c_socket = new_socket(ldevs->port);
-		printf("If: %s\n", ldevs->bind_interface);
-		if (ldevs->bind_interface != '\0')
-			iface = get_ifaddrs(ldevs->bind_interface);
 
+printf("If: %s\n", ldevs->bind_interface);
+		if (ldevs->bind_interface != '\0') {
+			iface = get_ifaddrs(ldevs->bind_interface);
+		} else {
+			iface = NULL;
+		}
+		printf("On port: %s\n", ldevs->port);
 		if (strlcpy(c_socket->port, ldevs->port, sizeof(c_socket->port))
 			== '\0')
 			fatalx("port copy failure");
@@ -98,6 +102,7 @@ create_socket(char *port, char *b_iface)
 	addr_hints.ai_socktype = SOCK_STREAM;
 	addr_hints.ai_flags |= AI_PASSIVE;
 
+	printf("Bind b_iface: %s\n", b_iface);
 	if((gai = getaddrinfo(b_iface, port, &addr_hints, &addr_res)) != 0) {
 		fatalx("getaddrinfo failed: %s", gai_strerror(gai));
 		return -1;
@@ -228,9 +233,10 @@ char
 				/*struct sockaddr_in6 *in6 =
 				(struct sockaddr_in6*) ifap->ifa_addr;*/
 			}
-printf("Addr: %s\n", addr);
+
 			if ((strcmp(name, ifap->ifa_name) == 0) &&
 				addr != '\0') {
+				printf("Addr: %s\n", addr);
 				return addr;
 				freeifaddrs(ifap);
 			}

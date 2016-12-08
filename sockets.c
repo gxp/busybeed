@@ -14,7 +14,14 @@
  * ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
-/* Someday, add ipv6 to this. Who cares right now. What a hassle. */
+
+/*
+ * Someday, add ipv6 to this. Who cares right now. What a hassle.
+ * Needed in:
+ * 	get_ifaddrs
+ * 	create_socket
+ * 	open_client_socket
+ */
 
 #include <arpa/inet.h>
 #include <netinet/in.h>
@@ -51,13 +58,12 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 	TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
 		c_socket = new_socket(ldevs->port);
 
-printf("If: %s\n", ldevs->bind_interface);
 		if (ldevs->bind_interface != '\0') {
 			iface = get_ifaddrs(ldevs->bind_interface);
 		} else {
 			iface = NULL;
 		}
-		printf("On port: %s\n", ldevs->port);
+
 		if (strlcpy(c_socket->port, ldevs->port, sizeof(c_socket->port))
 			== '\0')
 			fatalx("port copy failure");
@@ -102,7 +108,6 @@ create_socket(char *port, char *b_iface)
 	addr_hints.ai_socktype = SOCK_STREAM;
 	addr_hints.ai_flags |= AI_PASSIVE;
 
-	printf("Bind b_iface: %s\n", b_iface);
 	if((gai = getaddrinfo(b_iface, port, &addr_hints, &addr_res)) != 0) {
 		fatalx("getaddrinfo failed: %s", gai_strerror(gai));
 		return -1;
@@ -174,16 +179,14 @@ open_client_socket(char *ip_addr, int xport)
 		log_warn("no such host");
 		return(-1);
 	}
-	
-	bzero((char *)&servaddr,sizeof(servaddr));
-	bcopy((char *)server->h_addr, 
-	      (char *)&servaddr.sin_addr.s_addr,
-	      server->h_length);
-	
+
+	memset(&servaddr, 0, sizeof(servaddr));
+	memcpy(&servaddr.sin_addr.s_addr, server->h_addr, server->h_length);
+
 	servaddr.sin_family =		 AF_INET;
 	servaddr.sin_port =		 htons(cport);
-	inet_pton(AF_INET, sockaddr,
-		  &(servaddr.sin_addr));
+
+	inet_pton(AF_INET, sockaddr, &(servaddr.sin_addr));
 
 	if (connect(client_fd, (struct sockaddr *)&servaddr,
 		sizeof(servaddr)) == -1)
@@ -199,7 +202,7 @@ new_socket(char *port)
 
 	if ((sock = calloc(1, sizeof(*sock))) == NULL)
 		fatalx("no s_sock calloc");
-	
+
 	if (strlcpy(sock->port, strdup(port), sizeof(sock->port)) == '\0')
 		fatalx("no s_sock port");
 
@@ -209,11 +212,11 @@ new_socket(char *port)
 char
 *get_ifaddrs(char *name)
 {
-	struct ifaddrs *ifap, *ifa;
+	struct ifaddrs			*ifap, *ifa;
 	char *addr;
 
-	memset(&ifap, 0, sizeof(ifap));
-	memset(&addr, 0, sizeof(addr));
+	/*memset(&ifap, 0, sizeof(ifap));
+	memset(&addr, 0, sizeof(addr));*/
 
 	if (getifaddrs(&ifa) == -1)
 		fatalx("getifaddrs error");
@@ -236,7 +239,6 @@ char
 
 			if ((strcmp(name, ifap->ifa_name) == 0) &&
 				addr != '\0') {
-				printf("Addr: %s\n", addr);
 				return addr;
 				freeifaddrs(ifap);
 			}

@@ -207,8 +207,6 @@ socopts1	: LISTEN STRING PORT NUMBER {
 		}
 		| CONNECT STRING PORT NUMBER {
 			currentdevice->cport = $4;
-			/*snprintf(currentdevice->cport,
-				 sizeof(currentdevice->cport), "%d", $4);*/
 		}
 		| PASSWORD STRING {
 			currentdevice->password = $2;

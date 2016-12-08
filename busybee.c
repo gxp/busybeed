@@ -42,11 +42,19 @@ bb_sighdlr(int sig)
 }
 
 pid_t
-busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *bconf,
+busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	     struct s_conf * x_devices, struct sock_conf *x_socks)
 {
 	pid_t			 pid;
 
+	struct busybeed_conf	 	*bconf;
+	struct s_conf			*sdevs;
+	struct sock_conf		*socks;
+
+	bconf = xconf;
+	sdevs = x_devices;
+	socks = x_socks;
+	
 	switch (pid = fork()) {
 		case -1:
 			fatal("cannot fork");

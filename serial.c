@@ -37,7 +37,7 @@ open_devices(struct s_conf *x_devs)
 	int				 baudrate = 0;
 	int				 stop = 0;
 
-	struct				 termios s_opts;
+	struct termios			 s_opts;
 
 	s_devs = x_devs;
 	TAILQ_INIT(&s_devs->s_devices);

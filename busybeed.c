@@ -89,6 +89,9 @@ main(int argc, char *argv[])
 	}
 
 	memset(&lconf, 0, sizeof(lconf));
+	memset(&sdevs, 0, sizeof(sdevs));
+	memset(&socks, 0, sizeof(socks));
+
 	while ((ch = getopt(argc, argv, "dv")) != -1) {
 		switch (ch) {
 			case 'd':
@@ -103,8 +106,6 @@ main(int argc, char *argv[])
 		}
 	}
 
-	memset(&sdevs, 0, sizeof(sdevs));
-	memset(&socks, 0, sizeof(socks));
 	/* log to stderr until daemonized */
 	log_init(lconf.debug ? lconf.debug : 1, LOG_DAEMON);
 
@@ -152,6 +153,7 @@ main(int argc, char *argv[])
 		err(1, "pledge");
 
 	while (quit == 0) {
+		/* make parent daemon */
 		if (bbdm == 0) {
 			bbdm = 1;
 			log_init(lconf.debug, LOG_DAEMON);
@@ -164,7 +166,8 @@ main(int argc, char *argv[])
 		
 		/* busybctl crap in here eventually */
 		/* write and recv messages with child */
-		sleep(20000);
+		sleep(30000);
+
 	}
 
 	if (chld_pid)

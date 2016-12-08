@@ -205,6 +205,8 @@ char
 {
 	struct ifaddrs *ifap, *ifa;
 	char *addr;
+
+	memset(&ifap, 0, sizeof(ifap));
 	memset(&addr, 0, sizeof(addr));
 
 	if (getifaddrs(&ifa) == -1)
@@ -229,6 +231,7 @@ char
 			if ((strcmp(name, ifap->ifa_name) == 0) &&
 				addr != '\0') {
 				return addr;
+				freeifaddrs(ifap);
 			}
 		}
 		ifap = ifap->ifa_next;

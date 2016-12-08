@@ -228,7 +228,6 @@ char
 
 			if ((strcmp(name, ifap->ifa_name) == 0) &&
 				addr != '\0') {
-				freeifaddrs(ifap);
 				return addr;
 			}
 		}

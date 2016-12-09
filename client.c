@@ -17,6 +17,11 @@
 
 #include "busybeed.h"
 
+/* tail q of clients ... what shall we store? */
+/* connected socket fd, subscribed socket fd */
+/* password will already have been used, don't need that */
+/* client addr_info! */
+
 int			 max_clients = 1, max_subscriptions = 1;
 
 /*

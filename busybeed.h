@@ -96,7 +96,7 @@ extern int			 open_devices(struct s_conf *);
 struct s_device			*new_s_device(char *);
 
 struct s_device {
-	TAILQ_ENTRY(s_device)	  entry;
+	TAILQ_ENTRY(s_device)	 entry;
 	int			 fd;
 	char			 port[6];
 	int			 cport;
@@ -138,6 +138,18 @@ int				 create_socket(char *, char *);
 int				 open_client_socket(char *, int);
 
 /* client.c */
+struct client			*new_client(char *);
+
+struct client {
+	TAILQ_ENTRY(client)	 entry;
+	int			 fd;
+/* client info */
+};
+struct client			*c_client;
+
+struct client_conf {
+	TAILQ_HEAD(clients, client)	 	clients;
+};
 
 /* busybee.c */
 pid_t	 busybee_main(int[2], int, struct busybeed_conf *, struct s_conf *,

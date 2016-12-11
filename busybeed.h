@@ -19,8 +19,9 @@
 #include <sys/queue.h>
 #include <stdarg.h>
 
-#define PATH_CONF	"/etc/busybeed.conf"
-#define CTLSOCKET	"/var/run/busybeed.sock"
+#define PATH_CONF	 "/etc/busybeed.conf"
+#define CTLSOCKET	 "/var/run/busybeed.sock"
+#define BUFFRSIZE	 1024
 
 enum blockmodes {
 	BM_NORMAL,

@@ -167,22 +167,18 @@ main(int argc, char *argv[])
 		/* busybctl crap in here eventually */
 		/* write and recv messages with child */
 		sleep(30000);
-
 	}
 
 	if (chld_pid)
 		kill(chld_pid, SIGTERM);
 	
 	/* cleanup sockets */
-	TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry) {
+	TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry)
 		shutdown(lsocks->listener, 2);
-		/*close(lsocks->listener);*/
-	}
 	
 	/* cleanup devices */
-	TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
+	TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry)
 		close(ldevs->fd);
-	}
 
 	log_info("busybeed terminating");
 	return 0;

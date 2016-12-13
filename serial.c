@@ -208,7 +208,7 @@ open_devices(struct s_conf *x_devs)
 		strlcpy(cs_device->port, devs->port,
 			sizeof(cs_device->port));
 		cs_device->bind_interface =	 devs->bind_interface;
-
+		s_devs->count++;
 		TAILQ_INSERT_TAIL(&s_devs->s_devices,
 				  cs_device, entry);
 	}

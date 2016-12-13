@@ -19,21 +19,23 @@
 #include <sys/queue.h>
 #include <stdarg.h>
 
-#define PATH_CONF	 "/etc/busybeed.conf"
-#define CTLSOCKET	 "/var/run/busybeed.sock"
-#define BUFFRSIZE	 1024
+#define PATH_CONF	"/etc/busybeed.conf"
+#define CTLSOCKET	"/var/run/busybeed.sock"
+#define BUFFRSIZE        1024
 
 enum blockmodes {
 	BM_NORMAL,
 	BM_NONBLOCK
 };
 
+extern char			*__progname;
+extern int			 max_clients, max_subscriptions;
+
 /* prototypes */
 
 /* busybeed.c */
 extern struct busybeed_conf 	*conf;
-extern char			*__progname;
-extern int			 max_clients, max_subscriptions;
+
 
 /* log.c */
 void	log_init(int, int);
@@ -102,6 +104,7 @@ struct s_device {
 	char			 port[6];
 	int			 cport;
 	int			 max_clients;
+	int			 subscribed_clients;
 	int			 listener;
 	char			*bind_interface;
 	char			*ipaddr;
@@ -113,6 +116,7 @@ struct s_device			*cs_device;
 
 struct s_conf {
 	TAILQ_HEAD(s_devices, s_device)		 s_devices;
+	int					 count;
 };
 
 /* sockets.c */
@@ -133,24 +137,26 @@ struct s_socket			*c_socket;
 
 struct sock_conf {
 	TAILQ_HEAD(s_sockets, s_socket)		 s_sockets;
+	int					 count;
 };
 
 int				 create_socket(char *, char *);
 int				 open_client_socket(char *, int);
 
 /* client.c */
-struct client			*new_client(char *);
+
+/*struct client			*new_client(char *);
 
 struct client {
 	TAILQ_ENTRY(client)	 entry;
 	int			 fd;
-/* client info */
-};
+*//* client info */
+/*};
 struct client			*c_client;
 
 struct client_conf {
 	TAILQ_HEAD(clients, client)	 	clients;
-};
+};*/
 
 /* busybee.c */
 pid_t	 busybee_main(int[2], int, struct busybeed_conf *, struct s_conf *,

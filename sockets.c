@@ -69,6 +69,7 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 			fatalx("port copy failure");
 
 		sock_r = c_socket->listener = create_socket(ldevs->port, iface);
+		s_socks->count++;
 		if ( sock_r == -1) {
 			return -1;
 		} else if (sock_r == -2) {
@@ -76,6 +77,7 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 			TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry) {
 				if (strcmp(ldevs->port, lsocks->port) == 0) {
 					listener = lsocks->listener;
+					s_socks->count--;
 					fail = 0;
 					break;
 				}
@@ -87,9 +89,7 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 		} else {
 			listener =  c_socket->listener;
 		}
-
 		ldevs->listener = listener;
-
 		TAILQ_INSERT_TAIL(&s_socks->s_sockets, c_socket, entry);
 	}
 	return 0;

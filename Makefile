@@ -1,7 +1,7 @@
 # $OpenBSD: Makefile,v 1.73 2016/11/19 09:17:22 baseprime Exp $
 
 PROG=		busybeed
-SRCS=		parse.y busybeed.c client.c log.c serial.c sockets.c
+SRCS=		parse.y busybeed.c log.c serial.c sockets.c
 SRCS+=		busybee.c control.c
 
 DEBUG=		-g -DDEBUG=3 -O0

@@ -211,6 +211,7 @@ socopts1	: LISTEN STRING PORT NUMBER {
 		| PASSWORD STRING {
 			currentdevice->password = $2;
 		}
+		| bindopts2
 		| maxclientssub
 		;
 deviceopts2	: deviceopts2 deviceopts1 nl

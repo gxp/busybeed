@@ -38,7 +38,7 @@
 volatile sig_atomic_t		 bb_quit = 0;
 void				 bb_sighdlr(int);
 
-char				 buff[BUFFRSIZE];
+static unsigned char		 buff[BUFFRSIZE];
 
 int				 max_clients = 1, max_subscriptions = 1;
 
@@ -74,7 +74,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 						socks->count);
 	int				 pfdcnt = (sdevs->count + socks->count +
 						max_clients);
-	int				 pi = 0, i, nfds, pollsocks, c_nfds;
+	int				 pi = 0, i, j, nfds, pollsocks, c_nfds;
 	int				 rcv, c_conn = 0;
 	int				 n_client = -1, is_client = 0;
 
@@ -121,7 +121,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 		}
 
 		c_nfds = nfds;
-		/* accept clients */
+
 		for (i = 0; i < c_nfds; i++)
 		{
 			if(pfds[i].revents == 0)
@@ -137,15 +137,15 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 
 			if (is_client == 1) {
 				do {
-					n_client = accept(
-						lsocks->listener, NULL, NULL);
-						if (n_client == -1) {
-							if (errno !=
-								EWOULDBLOCK) {
-								fatal("failed");
-								break;
-							}
+					n_client = accept(lsocks->listener,
+								NULL, NULL);
+					if (n_client == -1) {
+						if (errno !=
+							EWOULDBLOCK) {
+							fatal("failed");
+							break;
 						}
+					}
 					if (nfds < pfdcnt) {
 						int opts =
 						    fcntl(n_client, F_GETFL);
@@ -176,14 +176,14 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 				c_conn = 0;
 				do {
 					memset(buff, 0, sizeof(buff));
-					rcv = recv(pfds[i].fd, buff,
-						   sizeof(buff), 0);
+					rcv = read(pfds[i].fd, buff,
+							sizeof(buff));
 					if (rcv < 0)
 					{
 						if (errno != EWOULDBLOCK)
 						{
 							log_info(
-							   "recv() failed");
+							       "recv() failed");
 						}
 						break;
 					}
@@ -191,6 +191,11 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 					{
 						pfds[i].fd = 0;
 						close(pfds[i].fd);
+						for(j = i; j < nfds; j++)
+						{
+							pfds[j].fd =
+								   pfds[j+1].fd;
+						}
 						nfds--;
 						log_info("connection closed");
 						break;
@@ -198,14 +203,17 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 					/* inspect packet for subscribe */
 					if (buff[0] == 0x7E) {
 						printf("Subscribe here\n");
+						printf("Bytes: %i\n", rcv);
+						printf("Data: %s\n\n", buff);
+						break;
 					} else {
 					/* forward packet to subscription */
-						printf("  %d bytes received\n",
-								rcv);
-						printf("%s\n", buff);
+						printf("NO subscribe\n");
+						printf("Bytes: %i\n", rcv);
+						printf("Data: %x,%x\n\n", buff[0], buff[1]);
+						break;
 					}
 				} while (bb_quit == 0);
-				
 			}
 		}
 		n_client = -1;

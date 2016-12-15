@@ -71,16 +71,17 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	socks =				 x_socks;
 
 	int 				 clients_start = (sdevs->count +
-						socks->count);
+					     socks->count);
 	int				 nfds = clients_start;
 	int				 pfdcnt = (sdevs->count + socks->count +
-							max_clients);
+					     max_clients);
 	int				 pi = 0, i, j, pollsocks, c_nfds;
 	int				 rcv, c_conn = 0;
 	int				 n_client = -1, is_client = 0;
 
-	struct pollfd			 pfds[pfdcnt];
-
+	struct pollfd			*pfds;/* pfds[pfdcnt];*/
+	pfds =				 malloc(pfdcnt*sizeof(struct pollfd));
+	
 	/* load up fds */
 	TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry) {
 		pfds[pi].fd =		 lsocks->listener;
@@ -146,8 +147,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 					n_client = accept(lsocks->listener,
 								NULL, NULL);
 					if (n_client == -1) {
-						if (errno !=
-							EWOULDBLOCK) {
+						if (errno != EWOULDBLOCK) {
 							fatal("failed");
 							break;
 						}
@@ -173,7 +173,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 						nfds++;
 					} else {
 						log_info(
-						       "max_clients exhausted");
+						    "max_clients exhausted");
 						close(n_client);
 					}
 				} while (n_client == -1);
@@ -183,12 +183,12 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 				do {
 					memset(buff, 0, sizeof(buff));
 					rcv = read(pfds[i].fd, buff,
-							sizeof(buff));
+						  sizeof(buff));
 					if (rcv < 0) {
 						if (errno != EWOULDBLOCK)
 						{
-							log_info("recv()"      \
-								  " failed");
+							log_warn("recv()"	\
+								 " failed");
 						}
 						if (errno == EBADF) {
 							fatal("error");
@@ -201,22 +201,34 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 						for(j = i; j < c_nfds; j++)
 						{
 							pfds[j].fd =
-								pfds[j+1].fd;
+								   pfds[j+1].fd;
 						}
 						if (i >= clients_start) {
-							log_info("client"      \
-							  " connection closed");
+							log_info("client"	\
+								 " connection"	\
+								 " closed");
 						} else {
 							/* could do reconnection
 							 * here for ip_addr
 							 * timeouts? maybe later
 							 * really not needed by
-							 * me now
+							 * me now unless 8266
+							 * has a timeout period
+							 * will need to test
+							 * later
 							 */
 							pfdcnt--;
 							clients_start--;
-							log_info("non-client"  \
-							  " connection closed");
+							log_info("non-client"	\
+								 " connection"	\
+								 " closed");
+							pfds = realloc(pfds,
+								   pfdcnt*
+								   sizeof(struct
+								   pollfd));
+							if (pfds == '\0') {
+							       fatal("realloc");
+							}
 						}
 						break;
 					}
@@ -228,7 +240,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 						printf("Data: %s\n\n", buff);
 						break;
 					} else {
-					/* forward packet to subscription */
+					/* forward packet to subscribers */
 						printf("NO subscribe\n");
 						printf("Bytes: %i\n", rcv);
 						printf("Data: %s\n\n", buff);

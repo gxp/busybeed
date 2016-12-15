@@ -47,7 +47,7 @@ open_devices(struct s_conf *x_devs)
 		cs_device = new_s_device(devs->name);
 		if (devs->devicelocation != '\0') {
 			fd = open(devs->devicelocation, O_RDWR | O_NOCTTY |
-					O_NDELAY);
+				  O_NDELAY);
 			if (fd == -1) {
 				log_warnx("failed to open %s",
 					  devs->devicelocation);
@@ -145,13 +145,13 @@ open_devices(struct s_conf *x_devs)
 						s_opts.c_cflag |= PARENB;
 						s_opts.c_cflag |= PARODD;
 						s_opts.c_iflag |= (INPCK |
-									ISTRIP);
+								   ISTRIP);
 					} else if (strcmp(devs->parity,
-							"even") == 0) {
+						"even") == 0) {
 						s_opts.c_cflag |= PARENB;
 						s_opts.c_cflag &= ~PARODD;
 						s_opts.c_iflag |= (INPCK |
-									ISTRIP);
+								   ISTRIP);
 					}
 				}
 				/* set stop bits */
@@ -173,19 +173,19 @@ open_devices(struct s_conf *x_devs)
 				/* set software control */
 				if (devs->swctrl != -1) {
 					s_opts.c_iflag &= ~(IXON | IXOFF |
-								IXANY);
+							    IXANY);
 					if (devs->swctrl == 1) {
-						s_opts.c_iflag |=
-							(IXON | IXOFF | IXANY);
+						s_opts.c_iflag |= (IXON | IXOFF
+								   | IXANY);
 					}	
 				}
 				/* set input/output as raw */
 				s_opts.c_lflag &= ~(ICANON | ECHO | ECHOE |
-							ISIG);
+						    ISIG);
 				s_opts.c_oflag &= ~OPOST;
 				/* Set the new options for the port */
 				tcsetattr(fd, TCSANOW, &s_opts);
-				cs_device->fd =		 fd;
+				cs_device->fd = fd;
 			}
 		}
 

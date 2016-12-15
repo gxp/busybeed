@@ -89,7 +89,7 @@ struct busybeed_conf {
 };
 
 int				 parse_config(const char *,
-					struct busybeed_conf *);
+					      struct busybeed_conf *);
 
 /* serial.c */
 
@@ -122,7 +122,7 @@ struct s_conf {
 /* sockets.c */
 extern struct sock_conf		*s_socks;
 extern int			 create_sockets(struct sock_conf *,
-							struct s_conf *);
+						struct s_conf *);
 extern char			*get_ifaddrs(char *);
 
 struct s_socket			*new_socket(char *);

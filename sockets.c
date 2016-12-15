@@ -64,8 +64,8 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 			iface = NULL;
 		}
 
-		if (strlcpy(c_socket->port, ldevs->port, sizeof(c_socket->port))
-			== '\0')
+		if (strlcpy(c_socket->port, ldevs->port,
+			    sizeof(c_socket->port)) == '\0')
 			fatalx("port copy failure");
 
 		sock_r = c_socket->listener = create_socket(ldevs->port, iface);
@@ -117,13 +117,13 @@ create_socket(char *port, char *b_iface)
 		loop_res = loop_res->ai_next) {
 
 		if((sock_fd = socket(loop_res->ai_family, loop_res->ai_socktype,
-			loop_res->ai_protocol)) == -1) {
+				     loop_res->ai_protocol)) == -1) {
 			fatalx("unable to create socket");
 			return -1;
 		}
 
 		if(setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &o_val,
-			sizeof(int)) == -1) {
+			      sizeof(int)) == -1) {
 			fatalx("setsockopt error");
 			freeaddrinfo(addr_res);
 			return -1; 
@@ -213,10 +213,7 @@ char
 *get_ifaddrs(char *name)
 {
 	struct ifaddrs			*ifap, *ifa;
-	char *addr;
-
-	/*memset(&ifap, 0, sizeof(ifap));
-	memset(&addr, 0, sizeof(addr));*/
+	char				*addr;
 
 	if (getifaddrs(&ifa) == -1)
 		fatalx("getifaddrs error");
@@ -230,7 +227,7 @@ char
 
 			if (ifap->ifa_addr->sa_family == AF_INET) {
 				struct sockaddr_in *in =
-				(struct sockaddr_in*) ifap->ifa_addr;
+				    (struct sockaddr_in*) ifap->ifa_addr;
 				addr = inet_ntoa(in->sin_addr);
 			} else {
 				/*struct sockaddr_in6 *in6 =

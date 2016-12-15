@@ -72,9 +72,10 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 
 	int 				 clients_start = (sdevs->count +
 						socks->count);
+	int				 nfds = clients_start;
 	int				 pfdcnt = (sdevs->count + socks->count +
-						max_clients);
-	int				 pi = 0, i, j, nfds, pollsocks, c_nfds;
+							max_clients);
+	int				 pi = 0, i, j, pollsocks, c_nfds;
 	int				 rcv, c_conn = 0;
 	int				 n_client = -1, is_client = 0;
 
@@ -89,7 +90,6 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 		pfds[pi].fd =		 ldevs->fd;
 		pfds[pi++].events =	 POLLIN;
 	}
-	nfds = pi;
 
 	switch (pid = fork()) {
 		case -1:
@@ -101,11 +101,18 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 			return (pid);
 	}
 
+	if (!xconf->debug) {
+		log_init(xconf->debug, LOG_DAEMON);
+		if (setsid() == -1)
+			fatal("setsid");
+	}
+	log_procinit("busybee");
+
 	if (pledge("stdio tty rpath wpath inet proc",
 		NULL) == -1)
 		err(1, "pledge");
 
-	log_procinit("busybeed");
+
 
 	signal(SIGTERM, bb_sighdlr);
 	signal(SIGINT, bb_sighdlr);
@@ -122,8 +129,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 
 		c_nfds = nfds;
 
-		for (i = 0; i < c_nfds; i++)
-		{
+		for (i = 0; i < c_nfds; i++) {
 			if(pfds[i].revents == 0)
 				continue;
 
@@ -178,26 +184,40 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 					memset(buff, 0, sizeof(buff));
 					rcv = read(pfds[i].fd, buff,
 							sizeof(buff));
-					if (rcv < 0)
-					{
+					if (rcv < 0) {
 						if (errno != EWOULDBLOCK)
 						{
-							log_info(
-							       "recv() failed");
+							log_info("recv()"      \
+								  " failed");
+						}
+						if (errno == EBADF) {
+							fatal("error");
 						}
 						break;
 					}
-					if (rcv == 0)
-					{
-						pfds[i].fd = 0;
+					if (rcv == 0) {
+						nfds--;
 						close(pfds[i].fd);
-						for(j = i; j < nfds; j++)
+						for(j = i; j < c_nfds; j++)
 						{
 							pfds[j].fd =
-								   pfds[j+1].fd;
+								pfds[j+1].fd;
 						}
-						nfds--;
-						log_info("connection closed");
+						if (i >= clients_start) {
+							log_info("client"      \
+							  " connection closed");
+						} else {
+							/* could do reconnection
+							 * here for ip_addr
+							 * timeouts? maybe later
+							 * really not needed by
+							 * me now
+							 */
+							pfdcnt--;
+							clients_start--;
+							log_info("non-client"  \
+							  " connection closed");
+						}
 						break;
 					}
 					/* inspect packet for subscribe */

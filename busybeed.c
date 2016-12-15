@@ -94,15 +94,15 @@ main(int argc, char *argv[])
 
 	while ((ch = getopt(argc, argv, "dv")) != -1) {
 		switch (ch) {
-			case 'd':
-				lconf.debug = 1;
-				break;
-			case 'v':
-				lconf.verbose++;
-				break;
-			default:
-				usage();
-				/* NOTREACHED */
+		case 'd':
+			lconf.debug = 1;
+			break;
+		case 'v':
+			lconf.verbose++;
+			break;
+		default:
+			usage();
+			/* NOTREACHED */
 		}
 	}
 
@@ -174,7 +174,7 @@ main(int argc, char *argv[])
 	
 	/* cleanup sockets */
 	TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry)
-		shutdown(lsocks->listener, 2);
+		close(lsocks->listener);
 	
 	/* cleanup devices */
 	TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry)

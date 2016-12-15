@@ -59,60 +59,60 @@ open_devices(struct s_conf *x_devs)
 				tcgetattr(fd, &s_opts);
 				/* set baud */
 				switch(devs->baud) {
-					case 50:
-						baudrate = B50;
-						break;
-					case 75:
-						baudrate = B75;
-						break;
-					case 110:
-						baudrate = B110;
-						break;
-					case 134:
-						baudrate = B134;
-						break;
-					case 150:
-						baudrate = B150;
-						break;
-					case 200:
-						baudrate = B200;
-						break;
-					case 300:
-						baudrate = B300;
-						break;
-					case 600:
-						baudrate = B600;
-						break;
-					case 1200:
-						baudrate = B1200;
-						break;
-					case 1800:
-						baudrate = B1800;
-						break;
-					case 2400:
-						baudrate = B2400;
-						break;
-					case 4800:
-						baudrate = B4800;
-						break;
-					case 9600:
-						baudrate = B9600;
-						break;
-					case 19200:
-						baudrate = B19200;
-						break;
-					case 38400:
-						baudrate = B38400;
-						break;
-					case 57600:
-						baudrate = B57600;
-						break;
-					case 76800:
-						baudrate = B76800;
-						break;
-					case 115200:
-						baudrate = B115200;
-						break;
+				case 50:
+					baudrate = B50;
+					break;
+				case 75:
+					baudrate = B75;
+					break;
+				case 110:
+					baudrate = B110;
+					break;
+				case 134:
+					baudrate = B134;
+					break;
+				case 150:
+					baudrate = B150;
+					break;
+				case 200:
+					baudrate = B200;
+					break;
+				case 300:
+					baudrate = B300;
+					break;
+				case 600:
+					baudrate = B600;
+					break;
+				case 1200:
+					baudrate = B1200;
+					break;
+				case 1800:
+					baudrate = B1800;
+					break;
+				case 2400:
+					baudrate = B2400;
+					break;
+				case 4800:
+					baudrate = B4800;
+					break;
+				case 9600:
+					baudrate = B9600;
+					break;
+				case 19200:
+					baudrate = B19200;
+					break;
+				case 38400:
+					baudrate = B38400;
+					break;
+				case 57600:
+					baudrate = B57600;
+					break;
+				case 76800:
+					baudrate = B76800;
+					break;
+				case 115200:
+					baudrate = B115200;
+					break;
 				}
 				cfsetispeed(&s_opts, baudrate);
 				cfsetospeed(&s_opts, baudrate);
@@ -122,18 +122,18 @@ open_devices(struct s_conf *x_devs)
 				if (devs->databits != -1) {
 					s_opts.c_cflag &= ~CSIZE;
 					switch(devs->databits) {
-						case 5:
-							stop = CS5;
-							break;
-						case 6:
-							stop = CS6;
-							break;
-						case 7:
-							stop = CS7;
-							break;
-						case 8:
-							stop = CS8;
-							break;
+					case 5:
+						stop = CS5;
+						break;
+					case 6:
+						stop = CS6;
+						break;
+					case 7:
+						stop = CS7;
+						break;
+					case 8:
+						stop = CS8;
+						break;
 					}
 					s_opts.c_cflag |= stop; 
 				}

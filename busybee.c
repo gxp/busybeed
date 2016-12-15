@@ -201,7 +201,8 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 						break;
 					}
 					/* inspect packet for subscribe */
-					if (buff[0] == 0x7E) {
+					if (buff[0] == 0x7E && i >=
+							clients_start) {
 						printf("Subscribe here\n");
 						printf("Bytes: %i\n", rcv);
 						printf("Data: %s\n\n", buff);
@@ -210,7 +211,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 					/* forward packet to subscription */
 						printf("NO subscribe\n");
 						printf("Bytes: %i\n", rcv);
-						printf("Data: %x,%x\n\n", buff[0], buff[1]);
+						printf("Data: %s\n\n", buff);
 						break;
 					}
 				} while (bb_quit == 0);

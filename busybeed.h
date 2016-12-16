@@ -17,6 +17,8 @@
 
 #include <sys/types.h>
 #include <sys/queue.h>
+
+#include <poll.h>
 #include <stdarg.h>
 
 #define PATH_CONF	"/etc/busybeed.conf"
@@ -104,7 +106,7 @@ struct s_device {
 	char			 port[6];
 	int			 cport;
 	int			 max_clients;
-	int			 subscribed_clients;
+	int			 subscribers;
 	int			 listener;
 	char			*bind_interface;
 	char			*ipaddr;
@@ -145,22 +147,30 @@ int				 open_client_socket(char *, int);
 
 /* client.c */
 
-/*struct client			*new_client(char *);
+struct client			*new_client(int);
 
 struct client {
 	TAILQ_ENTRY(client)	 entry;
 	int			 fd;
-*//* client info */
-/*};
+	int			 pfd;
+	int			 subscribed;
+	char			*subscriptions;
+};
 struct client			*c_client;
 
 struct client_conf {
 	TAILQ_HEAD(clients, client)	 	clients;
-};*/
+};
+
+int				 client_subscribe(int, unsigned char *);
 
 /* busybee.c */
+void				 clean_pfds(struct pollfd *, int);
+int				 packet_handler(struct pollfd *, unsigned
+						char *, int, int);
+
 pid_t	 busybee_main(int[2], int, struct busybeed_conf *, struct s_conf *,
-		      struct sock_conf *);
+		      struct sock_conf *, struct client_conf *);
 
 /* control.c */
 int			 	 control_init(char *);

@@ -190,7 +190,7 @@ open_devices(struct s_conf *x_devs)
 		}
 
 		if (devs->ipaddr != '\0') {
-		/* create fd for ipaddr instead of serial device */
+			/* create fd for ipaddr instead of serial device */
 			if((cs_device->fd =
 				open_client_socket(
 					devs->ipaddr, devs->cport)) == -1)

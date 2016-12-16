@@ -34,13 +34,17 @@
 #include <unistd.h>
 
 #include "busybeed.h"
+#include "json.h"
 
 volatile sig_atomic_t		 bb_quit = 0;
 void				 bb_sighdlr(int);
 
 static unsigned char		 buff[BUFFRSIZE];
-
 int				 max_clients = 1, max_subscriptions = 1;
+int				 j, c_nfds, nfds, pfdcnt, clients_start;
+int				 ph = -1;
+
+struct pollfd			*pfds;
 
 void
 bb_sighdlr(int sig)
@@ -53,9 +57,78 @@ bb_sighdlr(int sig)
 	}
 }
 
+int
+packet_handler(struct pollfd *x_pfds, unsigned char *x_buff, int i, int x_rcv)
+{
+	struct pollfd			*spfds;
+	unsigned char			*s_buff;
+	int				 s_rcv;
+
+	s_rcv =				 x_rcv;
+	s_buff =			 x_buff;
+	spfds =				 x_pfds;
+
+	/*
+	 * inspect packet for subscribe
+	 * only socket subscribers can pass a subscription packet
+	 * see client_subscribe for more information
+	 */
+
+	if (s_buff[0] == 0x7E && s_buff[1] == 0x7E && s_buff[2] == 0x7E &&
+	    i >= clients_start) {
+		int sb = client_subscribe(spfds[i].fd, s_buff);
+		if (sb == -1) {
+			close(spfds[i].fd);
+			clean_pfds(spfds, i);
+			nfds--;
+		}
+	} else {
+		/* forward packet to subscribers */
+		printf("NO subscribe, pass packet\n");
+		/*printf("Bytes: %i\n", s_rcv);
+		printf("Data: %s\n\n", s_buff);*/
+
+	}
+	return 0;
+}
+
+void
+clean_pfds(struct pollfd *x_pfds, int i)
+{
+	struct pollfd			*spfds;
+	spfds =				 x_pfds;
+	for(j = i; j < c_nfds; j++)
+	{
+		spfds[j].fd =
+		spfds[j+1].fd;
+	}
+	nfds--;
+	if (i >= clients_start) {
+		log_info("client connection closed");
+	} else {
+		/* could do reconnection
+		 * here for ip_addr
+		 * timeouts? maybe later
+		 * really not needed by
+		 * me now unless 8266
+		 * has a timeout period
+		 * will need to test
+		 * later
+		 */
+		pfdcnt--;
+		clients_start--;
+		log_info("non-client connection closed");
+		spfds = realloc(spfds, pfdcnt* sizeof(struct pollfd));
+		if (spfds == '\0') {
+			fatal("realloc");
+		}
+	}
+}
+
 pid_t
 busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
-	     struct s_conf * x_devices, struct sock_conf *x_socks)
+	     struct s_conf * x_devices, struct sock_conf *x_socks,
+	     struct client_conf *x_clients)
 {
 	pid_t				 pid;
 
@@ -65,23 +138,23 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	struct busybeed_conf	 	*bconf;
 	struct s_conf			*sdevs;
 	struct sock_conf		*socks;
+	struct client_conf		*sclients;
 
 	bconf =				 xconf;
 	sdevs =				 x_devices;
 	socks =				 x_socks;
+	sclients =			 x_clients;
 
-	int 				 clients_start = (sdevs->count +
-					     socks->count);
-	int				 nfds = clients_start;
-	int				 pfdcnt = (sdevs->count + socks->count +
-					     max_clients);
-	int				 pi = 0, i, j, pollsocks, c_nfds;
+	int				 pi = 0, i, pollsocks;
 	int				 rcv, c_conn = 0;
 	int				 n_client = -1, is_client = 0;
 
-	struct pollfd			*pfds;/* pfds[pfdcnt];*/
+	clients_start =			 (sdevs->count + socks->count);
+	nfds =				 clients_start;
+	pfdcnt =			 (sdevs->count + socks->count +
+					  max_clients);
 	pfds =				 malloc(pfdcnt*sizeof(struct pollfd));
-	
+
 	/* load up fds */
 	TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry) {
 		pfds[pi].fd =		 lsocks->listener;
@@ -91,6 +164,8 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 		pfds[pi].fd =		 ldevs->fd;
 		pfds[pi++].events =	 POLLIN;
 	}
+
+	TAILQ_INIT(&sclients->clients);
 
 	switch (pid = fork()) {
 		case -1:
@@ -112,8 +187,6 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	if (pledge("stdio tty rpath wpath inet proc",
 		NULL) == -1)
 		err(1, "pledge");
-
-
 
 	signal(SIGTERM, bb_sighdlr);
 	signal(SIGINT, bb_sighdlr);
@@ -196,56 +269,15 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 						break;
 					}
 					if (rcv == 0) {
-						nfds--;
 						close(pfds[i].fd);
-						for(j = i; j < c_nfds; j++)
-						{
-							pfds[j].fd =
-								   pfds[j+1].fd;
-						}
-						if (i >= clients_start) {
-							log_info("client"	\
-								 " connection"	\
-								 " closed");
-						} else {
-							/* could do reconnection
-							 * here for ip_addr
-							 * timeouts? maybe later
-							 * really not needed by
-							 * me now unless 8266
-							 * has a timeout period
-							 * will need to test
-							 * later
-							 */
-							pfdcnt--;
-							clients_start--;
-							log_info("non-client"	\
-								 " connection"	\
-								 " closed");
-							pfds = realloc(pfds,
-								   pfdcnt*
-								   sizeof(struct
-								   pollfd));
-							if (pfds == '\0') {
-							       fatal("realloc");
-							}
-						}
+						clean_pfds(pfds, i);
 						break;
 					}
-					/* inspect packet for subscribe */
-					if (buff[0] == 0x7E && i >=
-							clients_start) {
-						printf("Subscribe here\n");
-						printf("Bytes: %i\n", rcv);
-						printf("Data: %s\n\n", buff);
+
+					ph = packet_handler(pfds, buff, i, rcv);
+					if (ph == 0)
 						break;
-					} else {
-					/* forward packet to subscribers */
-						printf("NO subscribe\n");
-						printf("Bytes: %i\n", rcv);
-						printf("Data: %s\n\n", buff);
-						break;
-					}
+
 				} while (bb_quit == 0);
 			}
 		}

@@ -75,6 +75,7 @@ main(int argc, char *argv[])
 
 	struct busybeed_conf	 	 lconf;
 	struct s_conf			 sdevs;
+	struct client_conf		 sclients;
 	struct s_device			*ldevs;
 	struct sock_conf		 socks;
 	struct s_socket			*lsocks;
@@ -91,6 +92,7 @@ main(int argc, char *argv[])
 	memset(&lconf, 0, sizeof(lconf));
 	memset(&sdevs, 0, sizeof(sdevs));
 	memset(&socks, 0, sizeof(socks));
+	memset(&sclients, 0, sizeof(sclients));
 
 	while ((ch = getopt(argc, argv, "dv")) != -1) {
 		switch (ch) {
@@ -136,7 +138,8 @@ main(int argc, char *argv[])
 		fatalx("control socket listen failed");
 
 	/* fork child process */
-	chld_pid = busybee_main(pipe_chld, fd_ctl, &lconf, &sdevs, &socks);
+	chld_pid = busybee_main(pipe_chld, fd_ctl, &lconf, &sdevs, &socks,
+				&sclients);
 	
 	log_procinit("[priv]");
 	

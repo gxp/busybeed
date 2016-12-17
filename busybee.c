@@ -78,9 +78,9 @@ packet_handler(struct pollfd *x_pfds, unsigned char *x_buff, int i, int x_rcv)
 	    i >= clients_start) {
 		int sb = client_subscribe(spfds[i].fd, s_buff);
 		if (sb == -1) {
+			log_warnx("bad subscribe packet");
 			close(spfds[i].fd);
 			clean_pfds(spfds, i);
-			nfds--;
 		}
 	} else {
 		/* forward packet to subscribers */

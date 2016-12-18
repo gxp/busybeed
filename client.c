@@ -96,26 +96,12 @@ client_subscribe(int pfd, unsigned char *x_buff)
 		log_warnx("no devices");
 		return -1;
 	} else {
-		printf("Devices: %s\n", json_object_get_string(dev_obj));
+		printf("Devices: %s\n\n", json_object_get_string(dev_obj));
+		json_object_object_foreach(dev_obj, key, val) {
+			
+		}
 		return 0;
 	}
-	/*json_object_object_foreach(json_obj, key, val) {
-		if (strcmp(key, "subscribe") == 0) {
-			json_obj =	 json_object_get(val);
-			json_object_object_foreach(json_obj, keya, vala) {
-				printf("Ka: %s\n", keya);
-				if (strcmp(keya, "name") == 0) {
-					
-					printf("Name: %s\n", my_name);
-					printf("N2: %s\n",json_object_get_string(vala));
-					
-				
-				}
-				return 0;
-			}
-			return -1;
-		}
-	}*/
 	return -1;
 }
 

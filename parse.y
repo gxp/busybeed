@@ -70,8 +70,7 @@ const int			 s_parity =
 					(sizeof(parity)/sizeof(const char *));
 const int			 c_bauds =
 					(sizeof(baudrates)/sizeof(const int));
-int				 p_c = 0;
-int				 b_c = 0;
+int				 p_c = 0, b_c = 0, sub_reqs = 0;
 
 typedef struct {
 	union {
@@ -106,7 +105,9 @@ main		: DEFAULT PORT NUMBER {
 		| devretry
 		| SUBSCRIBE '{' subopts '}'
 		;
-subopts		: '{' name '}' ',' '{' devices '}'
+subopts		: {
+			sub_reqs = 0;
+		} '{' name '}' ',' '{' devices '}'
 		;
 name		: NAME ',' STRING {
 			/* create new client queue */
@@ -119,7 +120,13 @@ subdevs2	: subdevs2 subdevs
 		| subdevs
 		;
 subdevs		: DEVICE '{' STRING ',' STRING '}' optcomma {
-			log_info("%s,%s", $3, $5);
+			if (sub_reqs < max_subscriptions) {
+				log_info("%s,%s", $3, $5);
+			} else {
+				yyerror("max subsciption requests exceeded");
+				YYERROR;
+			}
+			sub_reqs++;
 		}
 		;
 optcomma	: ',' optcomma
@@ -697,7 +704,7 @@ parse_config(const char *filename, struct busybeed_conf *xconf)
 }
 
 int
-parse_buffer(u_char *xbuff)
+parse_buffer(struct client_conf *cconf, u_char *xbuff)
 {
 	int			 errors = 0;
 	if ((file = pushbuff(xbuff)) == NULL) {
@@ -724,4 +731,18 @@ new_device(char *name)
 		fatalx("no dev name");
 	
 	return (dev);
+};
+
+struct client *
+new_client(int pfd)
+{
+	struct client	*client;
+	
+	if ((client = calloc(1, sizeof(*client))) == NULL)
+		fatalx("no client calloc");
+	
+	if ((client->pfd = pfd) < 1)
+		fatalx("no client pfd");
+	
+	return (client);
 };

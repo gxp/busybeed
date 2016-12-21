@@ -62,12 +62,14 @@ packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
 	       int i, int x_rcv)
 {
 	struct pollfd			*spfds;
+	struct client_conf		*xcconf;
 	u_char				*s_buff;
 	int				 s_rcv, sb;
 
 	s_rcv =				 x_rcv;
 	s_buff =			 x_buff;
 	spfds =				 x_pfds;
+	xcconf =			 cconf;
 
 	/*
 	 * inspect packet for subscribe
@@ -77,7 +79,7 @@ packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
 
 	if (s_buff[0] == 0x7E && s_buff[1] == 0x7E && s_buff[2] == 0x7E &&
 	    i >= clients_start) {
-		sb = client_subscribe(cconf, spfds[i].fd, s_buff);
+		sb = client_subscribe(xcconf, spfds[i].fd, s_buff);
 
 		if (sb == -1) {
 			log_warnx("bad subscribe packet");

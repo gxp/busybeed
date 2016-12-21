@@ -31,6 +31,7 @@ client_subscribe(struct client_conf *cconf, int pfd, unsigned char *x_buff)
 	/*const char		*my_name;*/
 	unsigned char		*s_buff;
 	int			 parsedb = 0;
+	struct client_conf	*xcconf;
 	/*
 	 * A human readable packet is used for subscribing. The format is as
 	 * follows, without the line breaks and tabs. This is for initial
@@ -53,26 +54,16 @@ client_subscribe(struct client_conf *cconf, int pfd, unsigned char *x_buff)
 	 */
 
 	s_buff =		 x_buff;
+	xcconf =		 cconf;
+
 	memmove(s_buff, s_buff+3, strlen(s_buff+3)+1);
 
-	parsedb = parse_buffer(s_buff);
+	parsedb = parse_buffer(xcconf, s_buff);
 
 	return parsedb;
 }
 
-struct client *
-new_client(int pfd)
-{
-	struct client	*client;
-	
-	if ((client = calloc(1, sizeof(*client))) == NULL)
-		fatalx("no client calloc");
-	
-	if ((client->pfd = pfd) < 1)
-		fatalx("no client pfd");
-	
-	return (client);
-};
+
 
 
 

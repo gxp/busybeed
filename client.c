@@ -23,86 +23,41 @@
 #include <string.h>
 #include <unistd.h>
 
-#include "json.h"
 #include "busybeed.h"
 
 int
-client_subscribe(int pfd, unsigned char *x_buff)
+client_subscribe(struct client_conf *cconf, int pfd, unsigned char *x_buff)
 {
-	/*
-	 * All clients within the client socket portion of pollfd is required
-	 * to send a subscribe packet. The packet format is as follows:
-	 * 
-	 * Three bytes of 0x7E followed by the JSON subscription request.
-	 * 
-	 * JSON subscription request format:
-	 * 
-	 * this isn't quite right yet -- {"subscribe":
-	 * 	[{"name":"ClientName"},
-	 * 	{"devices":
-	 * 		[{"device":"dev1","password":"12345678"},
-	 * 		{"device":"dev2","password":"12345678"},
-	 * 		{"device":"dev3","password":"12345678"}
-	 * 	]}
-	 * ]}
-	 * 
-	 * ~~~{"subscribe":[{"name":"ClientName"},{"devices":[{"device":"dev1","password":"12345678"}]}]}
-	 * Tabs and returns entered for readability. JSON request should be on
-	 * one line.
-	 * 
-	 * ~~~{"subscribe":{"name":"ClientName"},"devices":[{"device":"dev1","password":"12345678"},{"device":"dev2","password":"12345678"}]}
-	 */
-
-	struct json_object	*json_obj, *sub_obj, *name_obj, *dev_obj;
-	//enum json_type		 type;
-	const char			*my_name;
+	/*const char		*my_name;*/
 	unsigned char		*s_buff;
-	int			 j_exists;
+	int			 parsedb = 0;
+	/*
+	 * A human readable packet is used for subscribing. The format is as
+	 * follows, without the line breaks and tabs. This is for initial
+	 * readability! Subscription packets must begin with 3 * 0x7E.
+	 * 
+	 * ~~~subscribe{
+	 * 	{name,"CLIENTNAME"},
+	 * 	{devices{
+	 * 		device{"dev1","password1"},
+	 * 		device{"dev2","password2"}
+	 * 		}
+	 * 	}
+	 * }
+	 * 
+	 * Accurate example:
+	 * 
+	 * ~~~subscribe{{name,"CLIENTNAME"},{devices{device{"dev1","password1"},device{"dev2","password2"}}}}
+	 * 
+	 * If your packet is not accurate, it will fail.
+	 */
 
 	s_buff =		 x_buff;
 	memmove(s_buff, s_buff+3, strlen(s_buff+3)+1);
 
-	/* Test curly brace on first character. After testing json-c, it seems
-	 * null is not returned on the tokener if numbers are passed.
-	 * ~~~sadface fails
-	 * ~~~1234567 passes crashing the child with no error
-	 */
-	if (s_buff[0] != '{')
-		return -1;
+	parsedb = parse_buffer(s_buff);
 
-	json_obj =		 json_tokener_parse(s_buff);
-
-	if (is_error(json_obj)) {
-		return -1;
-	}
-
-	/* validate subscribe packet */
-	j_exists = json_object_object_get_ex(json_obj, "subscribe", &sub_obj);
-	if (j_exists == 0) {
-		log_warnx("not a subscribe packet");
-		return -1;
-	}
-	/* get client name */
-	j_exists = json_object_object_get_ex(sub_obj, "name", &name_obj);
-	if (j_exists == 0) {
-		log_warnx("no client name");
-		return -1;
-	} else {
-		my_name = json_object_get_string(name_obj);
-	}
-	/* grab devices */
-	j_exists = json_object_object_get_ex(json_obj, "devices", &dev_obj);
-	if (j_exists == 0) {
-		log_warnx("no devices");
-		return -1;
-	} else {
-		printf("Devices: %s\n\n", json_object_get_string(dev_obj));
-		json_object_object_foreach(dev_obj, key, val) {
-			
-		}
-		return 0;
-	}
-	return -1;
+	return parsedb;
 }
 
 struct client *

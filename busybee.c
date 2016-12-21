@@ -39,10 +39,10 @@
 volatile sig_atomic_t		 bb_quit = 0;
 void				 bb_sighdlr(int);
 
-static unsigned char		 buff[BUFFRSIZE];
+static u_char			 buff[BUFFRSIZE];
 int				 max_clients = 1, max_subscriptions = 1;
+int				 ph = -1, c_retry = 30;
 int				 j, c_nfds, nfds, pfdcnt, clients_start;
-int				 ph = -1;
 
 struct pollfd			*pfds;
 
@@ -58,11 +58,12 @@ bb_sighdlr(int sig)
 }
 
 int
-packet_handler(struct pollfd *x_pfds, unsigned char *x_buff, int i, int x_rcv)
+packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
+	       int i, int x_rcv)
 {
 	struct pollfd			*spfds;
-	unsigned char			*s_buff;
-	int				 s_rcv;
+	u_char				*s_buff;
+	int				 s_rcv, sb;
 
 	s_rcv =				 x_rcv;
 	s_buff =			 x_buff;
@@ -76,11 +77,12 @@ packet_handler(struct pollfd *x_pfds, unsigned char *x_buff, int i, int x_rcv)
 
 	if (s_buff[0] == 0x7E && s_buff[1] == 0x7E && s_buff[2] == 0x7E &&
 	    i >= clients_start) {
-		int sb = client_subscribe(spfds[i].fd, s_buff);
+		sb = client_subscribe(cconf, spfds[i].fd, s_buff);
+
 		if (sb == -1) {
 			log_warnx("bad subscribe packet");
-			close(spfds[i].fd);
-			clean_pfds(spfds, i);
+			//close(spfds[i].fd);
+			//clean_pfds(spfds, i);
 		}
 	} else {
 		/* forward packet to subscribers */
@@ -114,6 +116,8 @@ clean_pfds(struct pollfd *x_pfds, int i)
 		 * has a timeout period
 		 * will need to test
 		 * later
+		 * 
+		 * start timer, need to add a retry period to parse
 		 */
 		pfdcnt--;
 		clients_start--;
@@ -165,6 +169,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 		pfds[pi++].events =	 POLLIN;
 	}
 
+	memset(sclients, 0, sizeof(sclients));
 	TAILQ_INIT(&sclients->clients);
 
 	switch (pid = fork()) {
@@ -274,7 +279,9 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 						break;
 					}
 
-					ph = packet_handler(pfds, buff, i, rcv);
+					ph = packet_handler(sclients, pfds,
+							    buff, i, rcv);
+
 					if (ph == 0)
 						break;
 

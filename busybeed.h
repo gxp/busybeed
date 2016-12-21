@@ -31,7 +31,7 @@ enum blockmodes {
 };
 
 extern char			*__progname;
-extern int			 max_clients, max_subscriptions;
+extern int			 max_clients, max_subscriptions, c_retry;
 
 /* prototypes */
 
@@ -92,6 +92,7 @@ struct busybeed_conf {
 
 int				 parse_config(const char *,
 					      struct busybeed_conf *);
+int			 parse_buffer(u_char *);
 
 /* serial.c */
 
@@ -162,12 +163,14 @@ struct client_conf {
 	TAILQ_HEAD(clients, client)	 	clients;
 };
 
-int				 client_subscribe(int, unsigned char *);
+int				 client_subscribe(struct client_conf *,
+						  int, u_char *);
 
 /* busybee.c */
 void				 clean_pfds(struct pollfd *, int);
-int				 packet_handler(struct pollfd *, unsigned
-						char *, int, int);
+int				 packet_handler(struct client_conf *,
+						struct pollfd *, u_char *, int,
+						int);
 
 pid_t	 busybee_main(int[2], int, struct busybeed_conf *, struct s_conf *,
 		      struct sock_conf *, struct client_conf *);

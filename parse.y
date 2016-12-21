@@ -42,7 +42,9 @@ static struct file {
 	int			 errors;
 } *file, *topfile;
 struct file	*pushfile(const char *);
+struct file	*pushbuff(u_char *);
 int		 popfile(void);
+int		 popbuff(void);
 int		 yyparse(void);
 int		 yylex(void);
 int		 yyerror(const char *, ...)
@@ -58,6 +60,7 @@ struct busybeed_conf		*conf;
 char				 default_port[6];
 char				*bind_interface = NULL;
 extern int			 max_clients, max_subscriptions, verbose;
+extern int			 c_retry;
 const char			*parity[4] = {"none", "odd", "even", "space"};
 const int			 baudrates[18] = {50, 75, 110, 134, 150, 200,
 						  300, 600, 1200, 1800, 2400,
@@ -79,9 +82,9 @@ typedef struct {
 } YYSTYPE;
 %}
 
-%token	BAUD DATA PARITY STOP HARDWARE SOFTWARE PASSWORD
-%token	LOG VERBOSE CONNECT DEVICE LISTEN LOCATION IPADDR
-%token	DEFAULT PORT MAX CLIENTS SUBSCRIPTIONS BIND INTERFACE
+%token	BAUD DATA PARITY STOP HARDWARE SOFTWARE PASSWORD NAME RETRY
+%token	LOG VERBOSE CONNECT DEVICE LISTEN LOCATION IPADDR DEVICES CONNECTION
+%token	DEFAULT PORT MAX CLIENTS SUBSCRIPTIONS BIND INTERFACE SUBSCRIBE
 %token	ERROR
 %token	<v.string>		STRING
 %token	<v.number>		NUMBER
@@ -100,6 +103,27 @@ main		: DEFAULT PORT NUMBER {
 		| bindopts1
 		| logging
 		| device
+		| devretry
+		| SUBSCRIBE '{' subopts '}'
+		;
+subopts		: '{' name '}' ',' '{' devices '}'
+		;
+name		: NAME ',' STRING {
+			/* create new client queue */
+			log_info("Subscribe: %s", $3);
+		}
+		;
+devices		: DEVICES '{' subdevs2 '}'
+		;
+subdevs2	: subdevs2 subdevs
+		| subdevs
+		;
+subdevs		: DEVICE '{' STRING ',' STRING '}' optcomma {
+			log_info("%s,%s", $3, $5);
+		}
+		;
+optcomma	: ',' optcomma
+		| /* emtpy */
 		;
 logging		: LOG VERBOSE NUMBER {
 			conf->verbose = $3;
@@ -119,6 +143,13 @@ maxclients	: MAX CLIENTS NUMBER {
 		;
 maxclientssub	: MAX CLIENTS NUMBER {
 			currentdevice->max_clients = $3;
+		}
+		;
+devretry	: CONNECTION RETRY NUMBER {
+			if ($3 >= 30 && $3 <= 600)
+				c_retry = $3;
+			else
+				c_retry = 30;
 		}
 		;
 maxsubs		: MAX SUBSCRIPTIONS NUMBER {
@@ -309,9 +340,11 @@ int lookup(char *s) {
 		{ "bind",		BIND},
 		{ "clients",		CLIENTS},
 		{ "connect",		CONNECT},
+		{ "connection",		CONNECTION},
 		{ "data",		DATA},
 		{ "default",		DEFAULT},
 		{ "device",		DEVICE},
+		{ "devices",		DEVICES},
 		{ "hardware",		HARDWARE},
 		{ "interface",		INTERFACE},
 		{ "ipaddr",		IPADDR},
@@ -319,11 +352,14 @@ int lookup(char *s) {
 		{ "location",		LOCATION},
 		{ "log",		LOG},
 		{ "max",		MAX},
+		{ "name",		NAME},
 		{ "parity",		PARITY},
 		{ "password",		PASSWORD},
 		{ "port",		PORT},
+		{ "retry",		RETRY},
 		{ "software",		SOFTWARE},
 		{ "stop",		STOP},
+		{ "subscribe",		SUBSCRIBE},
 		{ "subscriptions",	SUBSCRIPTIONS},
 		{ "verbose",		VERBOSE}
 	};
@@ -375,14 +411,16 @@ lgetc(int quotec)
 		return (c);
 	}
 
-	while ((c = getc(file->stream)) == '\\') {
-		next = getc(file->stream);
-		if (next != '\n') {
-			c = next;
-			break;
+	if (parseindex == 0) {
+		while ((c = getc(file->stream)) == '\\') {
+			next = getc(file->stream);
+			if (next != '\n') {
+				c = next;
+				break;
+			}
+			yylval.lineno = file->lineno;
+			file->lineno++;
 		}
-		yylval.lineno = file->lineno;
-		file->lineno++;
 	}
 
 	while (c == EOF) {
@@ -390,6 +428,7 @@ lgetc(int quotec)
 			return (EOF);
 		c = getc(file->stream);
 	}
+	parseindex = 0;
 	return (c);
 }
 
@@ -579,6 +618,30 @@ pushfile(const char *name)
 	return (nfile);
 }
 
+struct file *
+pushbuff(u_char *xbuff)
+{
+	struct file	*bfile;
+	
+	if ((bfile = calloc(1, sizeof(struct file))) == NULL) {
+		log_warn("malloc");
+		return (NULL);
+	}
+	if ((bfile->name = "subscribe buffer") == NULL) {
+		log_warn("malloc");
+		free(bfile);
+		return (NULL);
+	}
+	if ((parsebuf = xbuff) == NULL) {
+		log_warn("%s", bfile->name);
+		free(bfile);
+		return (NULL);
+	}
+	bfile->lineno = 1;
+	TAILQ_INSERT_TAIL(&files, bfile, entry);
+	return (bfile);
+}
+
 int
 popfile(void)
 {
@@ -596,8 +659,24 @@ popfile(void)
 }
 
 int
+popbuff(void)
+{
+	struct file	*prev;
+
+	if ((prev = TAILQ_PREV(file, files, entry)) != NULL)
+		prev->errors += file->errors;
+
+	TAILQ_REMOVE(&files, file, entry);
+
+	free(file);
+	file = prev;
+	return (file ? 0 : EOF);
+}
+
+int
 parse_config(const char *filename, struct busybeed_conf *xconf)
 {
+	
 	int			 errors = 0;
 	conf =			 xconf;
 	conf->verbose = 	 verbose;
@@ -610,8 +689,25 @@ parse_config(const char *filename, struct busybeed_conf *xconf)
 	topfile = file;
 
 	yyparse();
+
 	errors = file->errors;
 	popfile();
+
+	return (errors ? -1 : 0);
+}
+
+int
+parse_buffer(u_char *xbuff)
+{
+	int			 errors = 0;
+	if ((file = pushbuff(xbuff)) == NULL) {
+		return (-1);
+	}
+
+	topfile = file;
+	yyparse();
+	errors = file->errors;
+	popbuff();
 
 	return (errors ? -1 : 0);
 }

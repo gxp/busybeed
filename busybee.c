@@ -34,7 +34,6 @@
 #include <unistd.h>
 
 #include "busybeed.h"
-#include "json.h"
 
 volatile sig_atomic_t		 bb_quit = 0;
 void				 bb_sighdlr(int);

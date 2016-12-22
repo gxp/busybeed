@@ -24,6 +24,7 @@
 #define PATH_CONF	"/etc/busybeed.conf"
 #define CTLSOCKET	"/var/run/busybeed.sock"
 #define BUFFRSIZE        1024
+#define DEFAULTRETRY	 30
 
 enum blockmodes {
 	BM_NORMAL,
@@ -150,10 +151,10 @@ int				 open_client_socket(char *, int);
 
 struct client {
 	TAILQ_ENTRY(client)	 entry;
-	int			 fd;
+	char			*name;
 	int			 pfd;
 	int			 subscribed;
-	char			*subscriptions;
+	int			**subscriptions;
 };
 struct client			*c_client;
 
@@ -165,7 +166,8 @@ int				 client_subscribe(struct client_conf *,
 						  int, u_char *);
 
 	/* parse.y */
-int				 parse_buffer(struct client_conf *, u_char *);
+int				 parse_buffer(struct client_conf *, u_char *,
+					      int);
 
 /* busybee.c */
 void				 clean_pfds(struct pollfd *, int);

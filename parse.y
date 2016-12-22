@@ -57,6 +57,8 @@ int		 lungetc(int);
 int		 findeol(void);
 
 struct busybeed_conf		*conf;
+struct s_device			*ldevs;
+
 char				 default_port[6];
 char				*bind_interface = NULL;
 extern int			 max_clients, max_subscriptions, verbose;
@@ -70,7 +72,7 @@ const int			 s_parity =
 					(sizeof(parity)/sizeof(const char *));
 const int			 c_bauds =
 					(sizeof(baudrates)/sizeof(const int));
-int				 p_c = 0, b_c = 0, sub_reqs = 0;
+int				 p_c = 0, b_c = 0, sub_reqs = 0, cpfd;
 
 typedef struct {
 	union {
@@ -111,7 +113,9 @@ subopts		: {
 		;
 name		: NAME ',' STRING {
 			/* create new client queue */
-			log_info("Subscribe: %s", $3);
+			c_client = new_client(cpfd);
+			c_client->pfd = cpfd;
+			c_client->name = $3;
 		}
 		;
 devices		: DEVICES '{' subdevs2 '}'
@@ -121,7 +125,15 @@ subdevs2	: subdevs2 subdevs
 		;
 subdevs		: DEVICE '{' STRING ',' STRING '}' optcomma {
 			if (sub_reqs < max_subscriptions) {
-				log_info("%s,%s", $3, $5);
+				TAILQ_FOREACH(ldevs, &s_devs->s_devices,
+					      entry) {
+					if (strcmp(ldevs->name, $3) == 0) {
+						if (strcmp(ldevs->password, $5)
+							== 0) {
+							log_info("subscribe");
+						}
+					}
+				}
 			} else {
 				yyerror("max subsciption requests exceeded");
 				YYERROR;
@@ -156,7 +168,7 @@ devretry	: CONNECTION RETRY NUMBER {
 			if ($3 >= 30 && $3 <= 600)
 				c_retry = $3;
 			else
-				c_retry = 30;
+				c_retry = DEFAULTRETRY;
 		}
 		;
 maxsubs		: MAX SUBSCRIPTIONS NUMBER {
@@ -277,7 +289,7 @@ device		: DEVICE STRING	 {
 			currentdevice->stopbits =		 -1;
 			currentdevice->hwctrl =			 -1;
 			currentdevice->swctrl =			 -1;
-			currentdevice->password =		 NULL;
+			currentdevice->password =		 "";
 		} '{' optnl deviceopts2 '}' {
 			if (currentdevice->ipaddr != '\0' &&
 				currentdevice->cport == -1) {
@@ -343,32 +355,32 @@ int lookup(char *s) {
 
 	/* this has to be sorted always */
 	static const struct keywords keywords[] = {
-		{ "baud",		BAUD},
-		{ "bind",		BIND},
-		{ "clients",		CLIENTS},
-		{ "connect",		CONNECT},
-		{ "connection",		CONNECTION},
-		{ "data",		DATA},
-		{ "default",		DEFAULT},
-		{ "device",		DEVICE},
-		{ "devices",		DEVICES},
-		{ "hardware",		HARDWARE},
-		{ "interface",		INTERFACE},
-		{ "ipaddr",		IPADDR},
-		{ "listen",		LISTEN},
-		{ "location",		LOCATION},
-		{ "log",		LOG},
-		{ "max",		MAX},
-		{ "name",		NAME},
-		{ "parity",		PARITY},
-		{ "password",		PASSWORD},
-		{ "port",		PORT},
-		{ "retry",		RETRY},
-		{ "software",		SOFTWARE},
-		{ "stop",		STOP},
-		{ "subscribe",		SUBSCRIBE},
-		{ "subscriptions",	SUBSCRIPTIONS},
-		{ "verbose",		VERBOSE}
+		{"baud",		BAUD},
+		{"bind",		BIND},
+		{"clients",		CLIENTS},
+		{"connect",		CONNECT},
+		{"connection",		CONNECTION},
+		{"data",		DATA},
+		{"default",		DEFAULT},
+		{"device",		DEVICE},
+		{"devices",		DEVICES},
+		{"hardware",		HARDWARE},
+		{"interface",		INTERFACE},
+		{"ipaddr",		IPADDR},
+		{"listen",		LISTEN},
+		{"location",		LOCATION},
+		{"log",			LOG},
+		{"max",			MAX},
+		{"name",		NAME},
+		{"parity",		PARITY},
+		{"password",		PASSWORD},
+		{"port",		PORT},
+		{"retry",		RETRY},
+		{"software",		SOFTWARE},
+		{"stop",		STOP},
+		{"subscribe",		SUBSCRIBE},
+		{"subscriptions",	SUBSCRIPTIONS},
+		{"verbose",		VERBOSE}
 	};
 	const struct keywords	*p;
 
@@ -704,9 +716,10 @@ parse_config(const char *filename, struct busybeed_conf *xconf)
 }
 
 int
-parse_buffer(struct client_conf *cconf, u_char *xbuff)
+parse_buffer(struct client_conf *cconf, u_char *xbuff, int pfd)
 {
 	int			 errors = 0;
+	cpfd =			 pfd;
 	if ((file = pushbuff(xbuff)) == NULL) {
 		return (-1);
 	}

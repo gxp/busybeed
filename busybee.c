@@ -73,7 +73,7 @@ packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
 
 	/*
 	 * inspect packet for subscribe
-	 * only socket subscribers can pass a subscription packet
+	 * only socket clients can pass a subscription packet
 	 * see client_subscribe for more information
 	 */
 
@@ -83,8 +83,8 @@ packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
 
 		if (sb == -1) {
 			log_warnx("bad subscribe packet");
-			//close(spfds[i].fd);
-			//clean_pfds(spfds, i);
+			close(spfds[i].fd);
+			clean_pfds(spfds, i);
 		}
 	} else {
 		/* forward packet to subscribers */

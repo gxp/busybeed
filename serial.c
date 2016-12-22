@@ -197,9 +197,9 @@ open_devices(struct s_conf *x_devs)
 				exit(1);
 		}
 
-		if (cs_device->fd == '\0') {
+		if (cs_device->fd == '\0')
 			fatalx("something went wrong setting fd");
-		}
+
 		cs_device->password =		 devs->password;
 		cs_device->location =		 devs->devicelocation;
 		cs_device->ipaddr =		 devs->ipaddr;

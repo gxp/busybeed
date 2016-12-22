@@ -49,6 +49,7 @@ client_subscribe(struct client_conf *cconf, int pfd, unsigned char *x_buff)
 	 * Accurate example:
 	 * 
 	 * ~~~subscribe{{name,"CLIENTNAME"},{devices{device{"dev1","password1"},device{"dev2","password2"}}}}
+	 * ~~~subscribe{{name,"telinux"},{devices{device{"data_xbee",""}}}}
 	 * 
 	 * If your packet is not accurate, it will fail.
 	 */
@@ -58,25 +59,8 @@ client_subscribe(struct client_conf *cconf, int pfd, unsigned char *x_buff)
 
 	memmove(s_buff, s_buff+3, strlen(s_buff+3)+1);
 
-	parsedb = parse_buffer(xcconf, s_buff);
+	parsedb = parse_buffer(xcconf, s_buff, pfd);
 
 	return parsedb;
 }
-
-
-
-
-
-/*
- * 	TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
-		
-		client will need this info later. keep here for now
-		printf("Name: %s\n", ldevs->name);
-		printf("Port: %i\n", ldevs->port);
-		printf("Location: %s\n", ldevs->location);
-		printf("Password: %s\n", ldevs->password); 
-		
-
-	}
-*/
 

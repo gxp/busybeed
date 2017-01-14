@@ -248,7 +248,12 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 						}
 						pfds[nfds].fd = n_client;
 						pfds[nfds].events = POLLIN;
+						/* client has been accepted */
 						log_info("client accepted");
+						/* add to queue */
+						c_client = new_client(
+								pfds[nfds].fd);
+						c_client->pfd = pfds[nfds].fd;
 						nfds++;
 					} else {
 						log_info(
@@ -298,3 +303,17 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	}
 	_exit(0);
 }
+
+struct client *
+new_client(int pfd)
+{
+	struct client	*client;
+	
+	if ((client = calloc(1, sizeof(*client))) == NULL)
+		fatalx("no client calloc");
+	
+	if ((client->pfd = pfd) < 1)
+		fatalx("no client pfd");
+	
+	return (client);
+};

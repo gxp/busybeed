@@ -72,7 +72,7 @@ const int			 s_parity =
 					(sizeof(parity)/sizeof(const char *));
 const int			 c_bauds =
 					(sizeof(baudrates)/sizeof(const int));
-int				 p_c = 0, b_c = 0, sub_reqs = 0, cpfd;
+int				 p_c = 0, b_c = 0, sub_reqs = 0;
 
 typedef struct {
 	union {
@@ -113,9 +113,10 @@ subopts		: {
 		;
 name		: NAME ',' STRING {
 			/* create new client queue */
-			c_client = new_client(cpfd);
+			/* moving to busybee upon accept() */
+			/*c_client = new_client(cpfd);
 			c_client->pfd = cpfd;
-			c_client->name = $3;
+			c_client->name = $3;*/
 		}
 		;
 devices		: DEVICES '{' subdevs2 '}'
@@ -716,10 +717,10 @@ parse_config(const char *filename, struct busybeed_conf *xconf)
 }
 
 int
-parse_buffer(struct client_conf *cconf, u_char *xbuff, int pfd)
+parse_buffer(struct client_conf *cconf, u_char *xbuff)
 {
 	int			 errors = 0;
-	cpfd =			 pfd;
+	//cpfd =			 pfd;
 	if ((file = pushbuff(xbuff)) == NULL) {
 		return (-1);
 	}
@@ -744,18 +745,4 @@ new_device(char *name)
 		fatalx("no dev name");
 	
 	return (dev);
-};
-
-struct client *
-new_client(int pfd)
-{
-	struct client	*client;
-	
-	if ((client = calloc(1, sizeof(*client))) == NULL)
-		fatalx("no client calloc");
-	
-	if ((client->pfd = pfd) < 1)
-		fatalx("no client pfd");
-	
-	return (client);
 };

@@ -65,7 +65,6 @@ __dead void fatalx(const char *, ...)
 #define DEFAULT_BAUD		 9600
 extern char			*bind_interface;
 struct device			*new_device(char *);
-struct client			*new_client(int);
 
 struct device {
 	TAILQ_ENTRY(device)	 entry;
@@ -170,6 +169,7 @@ int				 parse_buffer(struct client_conf *, u_char *,
 					      int);
 
 /* busybee.c */
+struct client			*new_client(int);
 void				 clean_pfds(struct pollfd *, int);
 int				 packet_handler(struct client_conf *,
 						struct pollfd *, u_char *, int,

@@ -59,7 +59,7 @@ client_subscribe(struct client_conf *cconf, int pfd, unsigned char *x_buff)
 
 	memmove(s_buff, s_buff+3, strlen(s_buff+3)+1);
 
-	parsedb = parse_buffer(xcconf, s_buff, pfd);
+	parsedb = parse_buffer(xcconf, s_buff);
 
 	return parsedb;
 }

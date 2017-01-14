@@ -255,6 +255,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 								pfds[nfds].fd);
 						c_client->pfd = pfds[nfds].fd;
 						nfds++;
+						/* kickoff subscribe timer */
 					} else {
 						log_info(
 						    "max_clients exhausted");

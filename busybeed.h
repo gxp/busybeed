@@ -165,8 +165,7 @@ int				 client_subscribe(struct client_conf *,
 						  int, u_char *);
 
 	/* parse.y */
-int				 parse_buffer(struct client_conf *, u_char *,
-					      int);
+int				 parse_buffer(struct client_conf *, u_char *);
 
 /* busybee.c */
 struct client			*new_client(int);

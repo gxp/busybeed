@@ -19,6 +19,7 @@
 #include <sys/queue.h>
 
 #include <poll.h>
+#include <pthread.h>
 #include <stdarg.h>
 
 #define PATH_CONF	"/etc/busybeed.conf"
@@ -147,13 +148,13 @@ int				 create_socket(char *, char *);
 int				 open_client_socket(char *, int);
 
 /* client.c */
-
 struct client {
 	TAILQ_ENTRY(client)	 entry;
 	char			*name;
 	int			 pfd;
 	int			 subscribed;
 	int			**subscriptions;
+	pthread_t		 me_thread;
 };
 struct client			*c_client;
 
@@ -161,22 +162,35 @@ struct client_conf {
 	TAILQ_HEAD(clients, client)	 	clients;
 };
 
-int				 client_subscribe(struct client_conf *,
-						  int, u_char *);
+int				 client_subscribe(struct client_conf *, int,
+						  u_char *);
 
-	/* parse.y */
+/* parse.y */
 int				 parse_buffer(struct client_conf *, u_char *);
+struct client_timer_data {
+	int			 seconds;
+	void			 (*fptr)(struct pollfd *pfd,
+					 struct client_conf *cconf);
+	struct client_conf	*cconf;
+	struct pollfd		*pfd;
+	int			 c_pfd;
+};
+
+void				 start_client_timer(struct client_timer_data *);
+void				*run_client_timer(void *data);
 
 /* busybee.c */
 struct client			*new_client(int);
-void				 clean_pfds(struct pollfd *, int);
-int				 packet_handler(struct client_conf *,
-						struct pollfd *, u_char *, int,
-						int);
-
+void				 clean_pfds(struct client_conf *,
+					    struct pollfd *, int,
+					    struct s_conf *);
+void				 test_client(struct pollfd *,
+					     struct client_conf *);
 pid_t	 busybee_main(int[2], int, struct busybeed_conf *, struct s_conf *,
 		      struct sock_conf *, struct client_conf *);
-
+int				 packet_handler(struct client_conf *,
+						struct pollfd *, u_char *, int,
+						int, struct s_conf *);
 /* control.c */
 int			 	 control_init(char *);
 int			 	 control_listen(int);

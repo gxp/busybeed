@@ -24,6 +24,7 @@
 #include <errno.h>
 #include <fcntl.h>
 #include <math.h>
+#include <pthread.h>
 #include <poll.h>
 #include <signal.h>
 #include <stdarg.h>
@@ -31,9 +32,12 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
+#include <time.h>
 #include <unistd.h>
 
 #include "busybeed.h"
+
+#define SUBTIME			 2
 
 volatile sig_atomic_t		 bb_quit = 0;
 void				 bb_sighdlr(int);
@@ -42,8 +46,6 @@ static u_char			 buff[BUFFRSIZE];
 int				 max_clients = 1, max_subscriptions = 1;
 int				 ph = -1, c_retry = 30;
 int				 j, c_nfds, nfds, pfdcnt, clients_start;
-
-struct pollfd			*pfds;
 
 void
 bb_sighdlr(int sig)
@@ -58,10 +60,13 @@ bb_sighdlr(int sig)
 
 int
 packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
-	       int i, int x_rcv)
+	       int i, int x_rcv, struct s_conf *x_devices)
 {
 	struct pollfd			*spfds;
 	struct client_conf		*xcconf;
+	struct s_conf			*sdevs;
+
+	sdevs =				 x_devices;
 	u_char				*s_buff;
 	int				 s_rcv, sb;
 
@@ -70,6 +75,7 @@ packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
 	spfds =				 x_pfds;
 	xcconf =			 cconf;
 
+	printf("Packet from %i\n", spfds[i].fd);
 	/*
 	 * inspect packet for subscribe
 	 * only socket clients can pass a subscription packet
@@ -82,8 +88,7 @@ packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
 
 		if (sb == -1) {
 			log_warnx("bad subscribe packet");
-			close(spfds[i].fd);
-			clean_pfds(spfds, i);
+			clean_pfds(xcconf, spfds, i, sdevs);
 		}
 	} else {
 		/* forward packet to subscribers */
@@ -96,10 +101,48 @@ packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
 }
 
 void
-clean_pfds(struct pollfd *x_pfds, int i)
+clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
+	   struct s_conf *x_devices)
 {
 	struct pollfd			*spfds;
+	struct client			*sclient, *tmp_sclient;
+	struct client_conf		*sclients;
+	struct s_conf			*sdevs;
+
+	int				 toclose;
+	sdevs =				 x_devices;
 	spfds =				 x_pfds;
+	toclose =			 spfds[i].fd;
+	sclients =			 cconf;
+
+	TAILQ_FOREACH_SAFE(sclient, &sclients->clients, entry, tmp_sclient) {
+		tmp_sclient = TAILQ_NEXT(sclient, entry);
+		if (sclient->pfd == spfds[i].fd) {
+
+
+			/*
+			 * clean subscriptions
+			 * if x_devices == null, it's coming from test_client
+			 * and no subscriptions have been attempted, so skip
+			 */
+			if (sdevs != '\0') {
+			/* 
+			 * go through sclient->subscriptions if match
+			 * to iteration through sdevs, then
+			 * s_device->subscribers--
+			 */	
+			}
+
+
+
+
+
+
+
+			TAILQ_REMOVE(&sclients->clients, sclient, entry);
+			break;
+		}
+	}
 	for(j = i; j < c_nfds; j++)
 	{
 		spfds[j].fd =
@@ -107,6 +150,7 @@ clean_pfds(struct pollfd *x_pfds, int i)
 	}
 	nfds--;
 	if (i >= clients_start) {
+		close(toclose);
 		log_info("client connection closed");
 	} else {
 		/* could do reconnection
@@ -130,20 +174,51 @@ clean_pfds(struct pollfd *x_pfds, int i)
 	}
 }
 
+
+void
+test_client(struct pollfd *x_pfds, struct client_conf *cconf)
+{
+	struct pollfd			*spfds;
+	struct client			*sclient;
+	struct client_conf		*sclients;
+	int				 i;
+	pthread_t			 me;
+
+	spfds =				 x_pfds;
+	sclients =			 cconf;
+	i =				 clients_start;
+	c_nfds =			 nfds;
+	me =				 pthread_self();
+
+	TAILQ_FOREACH(sclient, &sclients->clients, entry) {
+		if (sclient->subscribed != 1) {
+			for (i = 0; i < c_nfds; i++) {
+				if ((spfds[i].fd == sclient->pfd) &&
+				    (sclient->me_thread == me)) {
+					clean_pfds(sclients, spfds, i, NULL);
+					break;
+				}
+			}
+		}
+	}
+	pthread_exit(NULL);
+}
+
 pid_t
 busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
-	     struct s_conf * x_devices, struct sock_conf *x_socks,
+	     struct s_conf *x_devices, struct sock_conf *x_socks,
 	     struct client_conf *x_clients)
 {
 	pid_t				 pid;
 
 	struct s_device			*ldevs;
 	struct s_socket			*lsocks;
-
+	struct pollfd			*pfds;
 	struct busybeed_conf	 	*bconf;
 	struct s_conf			*sdevs;
 	struct sock_conf		*socks;
 	struct client_conf		*sclients;
+	struct client_timer_data	*cdata;
 
 	bconf =				 xconf;
 	sdevs =				 x_devices;
@@ -151,7 +226,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	sclients =			 x_clients;
 
 	int				 pi = 0, i, pollsocks;
-	int				 rcv, c_conn = 0;
+	int				 rcv, c_conn = 0, subset = 0;
 	int				 n_client = -1, is_client = 0;
 
 	clients_start =			 (sdevs->count + socks->count);
@@ -171,6 +246,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	}
 
 	memset(sclients, 0, sizeof(sclients));
+	cdata = (struct client_timer_data *) calloc(1, sizeof(*cdata));
 	TAILQ_INIT(&sclients->clients);
 
 	switch (pid = fork()) {
@@ -248,14 +324,18 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 						}
 						pfds[nfds].fd = n_client;
 						pfds[nfds].events = POLLIN;
-						/* client has been accepted */
 						log_info("client accepted");
-						/* add to queue */
-						c_client = new_client(
-								pfds[nfds].fd);
-						c_client->pfd = pfds[nfds].fd;
+						c_client = new_client(n_client);
+						TAILQ_INSERT_TAIL(
+							&sclients->clients,
+							c_client, entry);
+						cdata->seconds = SUBTIME;
+						cdata->fptr = test_client;
+						cdata->cconf = sclients;
+						cdata->pfd = pfds;
+						cdata->c_pfd = n_client;
 						nfds++;
-						/* kickoff subscribe timer */
+						subset = 1;
 					} else {
 						log_info(
 						    "max_clients exhausted");
@@ -276,18 +356,19 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 								 " failed");
 						}
 						if (errno == EBADF) {
-							fatal("error");
+							fatalx("error");
 						}
 						break;
 					}
 					if (rcv == 0) {
-						close(pfds[i].fd);
-						clean_pfds(pfds, i);
+						clean_pfds(sclients, pfds, i,
+							   sdevs);
 						break;
 					}
 
 					ph = packet_handler(sclients, pfds,
-							    buff, i, rcv);
+							    buff, i, rcv,
+							    sdevs);
 
 					if (ph == 0)
 						break;
@@ -296,6 +377,10 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 			}
 		}
 		n_client = -1;
+		if(subset == 1) {
+			start_client_timer(cdata);
+			subset = 0;
+		}
 	}
 	for (i = 0; i < nfds; i++)
 	{

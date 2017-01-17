@@ -15,7 +15,10 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <sys/queue.h>
+
 #include <errno.h>
+#include <pthread.h>
 #include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -29,9 +32,9 @@ int
 client_subscribe(struct client_conf *cconf, int pfd, unsigned char *x_buff)
 {
 	/*const char		*my_name;*/
-	unsigned char		*s_buff;
-	int			 parsedb = 0;
-	struct client_conf	*xcconf;
+	unsigned char			*s_buff;
+	int				 parsedb = 0;
+	struct client_conf		*xcconf;
 	/*
 	 * A human readable packet is used for subscribing. The format is as
 	 * follows, without the line breaks and tabs. This is for initial
@@ -54,13 +57,64 @@ client_subscribe(struct client_conf *cconf, int pfd, unsigned char *x_buff)
 	 * If your packet is not accurate, it will fail.
 	 */
 
-	s_buff =		 x_buff;
-	xcconf =		 cconf;
+	s_buff =			 x_buff;
+	xcconf =			 cconf;
 
 	memmove(s_buff, s_buff+3, strlen(s_buff+3)+1);
 
 	parsedb = parse_buffer(xcconf, s_buff);
 
 	return parsedb;
+}
+
+void
+*run_client_timer(void *data)
+{
+	struct pollfd			*spfds;
+	struct client			*sclient;
+	struct client_conf		*sclients;
+	struct client_timer_data	*cdata;
+
+	int				 seconds, c_pfd;
+	pthread_t			 me;
+
+	void (*t_fptr)(struct pollfd *, struct client_conf *);
+
+	me =				 pthread_self();
+	cdata =				 data;
+	spfds =				 cdata->pfd;
+	c_pfd =				 cdata->c_pfd;
+	sclients =				 cdata->cconf;
+	seconds =			 cdata->seconds;
+	t_fptr = 			 cdata->fptr;
+
+	TAILQ_FOREACH(sclient, &sclients->clients, entry) {
+		if (sclient->pfd == c_pfd) {
+			sclient->me_thread = me;
+			break;
+		}
+	}
+
+	sleep(seconds);
+
+	(void) (*t_fptr)(spfds, sclients);
+	pthread_exit(NULL);
+	return NULL;
+}
+
+void
+start_client_timer(struct client_timer_data *cdata)
+{
+	struct client_timer_data	*cldata;
+	pthread_t			 client_check;
+	int				 tcheck;
+
+	cldata =			 cdata;
+
+	tcheck = pthread_create(&client_check, NULL, run_client_timer,
+				(void *) cldata);
+	if (tcheck)
+		fatalx("thread creation failed");
+
 }
 

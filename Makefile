@@ -9,8 +9,8 @@ SRCS+=		busybee.c control.c
 
 DEBUG=		-g -DDEBUG=3 -O0
 
-#LDFLAGS +=	-L$(LIBJSON_LIBDIR) -ljson-c
-
+#LDFLAGS+=	-L$(LIBJSON_LIBDIR) -ljson-c
+LDFLAGS+=	-pthread -lpthread
 #CFLAGS +=	-I$(LIBJSON_INCDIR)/json-c
 CFLAGS+=	-Wall -I${.CURDIR}
 CFLAGS+=	-Wstrict-prototypes -Wmissing-prototypes

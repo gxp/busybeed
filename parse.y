@@ -131,13 +131,19 @@ subdevs		: DEVICE '{' STRING ',' STRING '}' optcomma {
 					if (strcmp(ldevs->name, $3) == 0) {
 						if (strcmp(ldevs->password, $5)
 							== 0) {
-							log_info("subscribe");
+							
+							//subscribe function?
+							//how do we set the **subscriptions array size?
+							
+							
+							//log_info("subscribe");
 						}
 					}
 				}
 			} else {
-				yyerror("max subsciption requests exceeded");
-				YYERROR;
+				log_warnx("max subsciption requests exceeded");
+				//yyerror("max subsciption requests exceeded");
+				//YYERROR;
 			}
 			sub_reqs++;
 		}
@@ -720,7 +726,6 @@ int
 parse_buffer(struct client_conf *cconf, u_char *xbuff)
 {
 	int			 errors = 0;
-	//cpfd =			 pfd;
 	if ((file = pushbuff(xbuff)) == NULL) {
 		return (-1);
 	}

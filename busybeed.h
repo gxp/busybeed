@@ -166,7 +166,9 @@ int				 client_subscribe(struct client_conf *, int,
 						  u_char *);
 
 /* parse.y */
-int				 parse_buffer(struct client_conf *, u_char *);
+int				 parse_buffer(struct client_conf *, u_char *,
+					      int);
+void				 do_subscribe(int, int, struct client_conf *);
 struct client_timer_data {
 	int			 seconds;
 	void			 (*fptr)(struct pollfd *pfd,

@@ -58,6 +58,9 @@ int		 findeol(void);
 
 struct busybeed_conf		*conf;
 struct s_device			*ldevs;
+struct client_conf		*sclients;
+struct client			*sclient;
+int				 my_pfd;
 
 char				 default_port[6];
 char				*bind_interface = NULL;
@@ -130,20 +133,28 @@ subdevs		: DEVICE '{' STRING ',' STRING '}' optcomma {
 					      entry) {
 					if (strcmp(ldevs->name, $3) == 0) {
 						if (strcmp(ldevs->password, $5)
-							== 0) {
-							
-							//subscribe function?
-							//how do we set the **subscriptions array size?
-							
-							
-							//log_info("subscribe");
+							== 0 &&
+							(ldevs->subscribers < 
+							 ldevs->max_clients)) {
+							ldevs->subscribers++;
+							do_subscribe(my_pfd,
+								     ldevs->fd,
+								     sclients);
 						}
 					}
 				}
 			} else {
-				log_warnx("max subsciption requests exceeded");
-				//yyerror("max subsciption requests exceeded");
-				//YYERROR;
+				log_warnx("max subscription requests exceeded");
+				/*
+				 * no need to kill a client entirely for 
+				 * trying to subscribe to more than max 
+				 * subscriptions, so just ignore the rest
+				 * 
+				 * keep this note in case i change my mind
+				 * 
+				 * yyerror("max subscription requests exceeded");
+				 * YYERROR;
+				 */
 			}
 			sub_reqs++;
 		}
@@ -723,8 +734,11 @@ parse_config(const char *filename, struct busybeed_conf *xconf)
 }
 
 int
-parse_buffer(struct client_conf *cconf, u_char *xbuff)
+parse_buffer(struct client_conf *cconf, u_char *xbuff, int pfd)
 {
+	my_pfd =			 pfd;
+	sclients =			 cconf;
+
 	int			 errors = 0;
 	if ((file = pushbuff(xbuff)) == NULL) {
 		return (-1);
@@ -736,6 +750,24 @@ parse_buffer(struct client_conf *cconf, u_char *xbuff)
 	popbuff();
 
 	return (errors ? -1 : 0);
+}
+
+void
+do_subscribe(int mypfd, int devfd, struct client_conf *cconf)
+{
+	struct client_conf		*subclients;
+	subclients =			 cconf;
+	log_info("do subscribe");
+	
+	TAILQ_FOREACH(sclient, &sclients->clients, entry) {
+		if (sclient->pfd == mypfd) {
+			sclient->subscribed = 1;
+			
+			// pump on to **subscriptions here
+			// add name to args list
+			// then, i think subscriptions are done!
+		}
+	}
 }
 
 struct device *

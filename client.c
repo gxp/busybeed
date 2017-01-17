@@ -52,7 +52,7 @@ client_subscribe(struct client_conf *cconf, int pfd, unsigned char *x_buff)
 	 * Accurate example:
 	 * 
 	 * ~~~subscribe{{name,"CLIENTNAME"},{devices{device{"dev1","password1"},device{"dev2","password2"}}}}
-	 * ~~~subscribe{{name,"telinux"},{devices{device{"data_xbee",""}}}}
+	 * ~~~subscribe{{name,"telinux"},{devices{device{"data_xbee",""},device{"dev2","password2"},device{"dev1","password1"},device{"dev2","password2"},device{"dev1","password1"},device{"dev2","password2"}}}}
 	 * 
 	 * If your packet is not accurate, it will fail.
 	 */
@@ -62,7 +62,7 @@ client_subscribe(struct client_conf *cconf, int pfd, unsigned char *x_buff)
 
 	memmove(s_buff, s_buff+3, strlen(s_buff+3)+1);
 
-	parsedb = parse_buffer(xcconf, s_buff);
+	parsedb = parse_buffer(xcconf, s_buff, pfd);
 
 	return parsedb;
 }

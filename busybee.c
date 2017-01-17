@@ -37,7 +37,7 @@
 
 #include "busybeed.h"
 
-#define SUBTIME			 2
+#define SUBTIME			 5
 
 volatile sig_atomic_t		 bb_quit = 0;
 void				 bb_sighdlr(int);
@@ -85,7 +85,6 @@ packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
 	if (s_buff[0] == 0x7E && s_buff[1] == 0x7E && s_buff[2] == 0x7E &&
 	    i >= clients_start) {
 		sb = client_subscribe(xcconf, spfds[i].fd, s_buff);
-
 		if (sb == -1) {
 			log_warnx("bad subscribe packet");
 			clean_pfds(xcconf, spfds, i, sdevs);
@@ -118,8 +117,6 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 	TAILQ_FOREACH_SAFE(sclient, &sclients->clients, entry, tmp_sclient) {
 		tmp_sclient = TAILQ_NEXT(sclient, entry);
 		if (sclient->pfd == spfds[i].fd) {
-
-
 			/*
 			 * clean subscriptions
 			 * if x_devices == null, it's coming from test_client
@@ -132,13 +129,6 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 			 * s_device->subscribers--
 			 */	
 			}
-
-
-
-
-
-
-
 			TAILQ_REMOVE(&sclients->clients, sclient, entry);
 			break;
 		}

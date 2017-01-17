@@ -1,17 +1,13 @@
 # $OpenBSD: Makefile,v 1.73 2016/11/19 09:17:22 baseprime Exp $
 
-LIBJSON_DIR=	/usr/local
-LIBJSON_INCDIR=	$(LIBJSON_DIR)/include
-LIBJSON_LIBDIR=	$(LIBJSON_DIR)/lib
 PROG=		busybeed
 SRCS=		parse.y busybeed.c client.c log.c serial.c sockets.c
 SRCS+=		busybee.c control.c
 
 DEBUG=		-g -DDEBUG=3 -O0
 
-#LDFLAGS+=	-L$(LIBJSON_LIBDIR) -ljson-c
-LDFLAGS+=	-pthread -lpthread
-#CFLAGS +=	-I$(LIBJSON_INCDIR)/json-c
+LDFLAGS=	-pthread -lpthread
+
 CFLAGS+=	-Wall -I${.CURDIR}
 CFLAGS+=	-Wstrict-prototypes -Wmissing-prototypes
 CFLAGS+=	-Wmissing-declarations

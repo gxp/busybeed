@@ -70,8 +70,6 @@ write_packet(int blen, int wfd, u_char *x_buff)
 	s_buff =			 x_buff;
 
 	write(w_fd, s_buff, b_len);
-	printf("Bytes: %i\n", b_len);
-	printf("Data: %s\n\n", s_buff);
 }
 
 int
@@ -111,7 +109,6 @@ packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
 		//~~~subscribe{{name,"telinux"},{devices{device{"data_xbee","DxB81$62%ee"}}}}
 		if (i < clients_start) {
 			/* dev packet */
-			log_info("write to client");
 			TAILQ_FOREACH(sclient, &sclients->clients, entry) {
 				for (k = 0; k < cnfds; k++) {
 					if (sclient->subscriptions[k] ==
@@ -124,7 +121,6 @@ packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
 			}
 		} else {
 			/* client packet */
-			log_info("write to dev");
 			TAILQ_FOREACH(sclient, &sclients->clients, entry) {
 				if (sclient->pfd == spfds[i].fd &&
 				    sclient->subscribed == 1) {

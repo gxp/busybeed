@@ -108,7 +108,7 @@ packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
 		}
 	} else {
 		/* forward packet to and from subscribers */
-		//~~~subscribe{{name,"telinux"},{devices{device{"data_xbee","Pass1234"}}}}
+		//~~~subscribe{{name,"telinux"},{devices{device{"data_xbee","DxB81$62%ee"}}}}
 		if (i < clients_start) {
 			/* dev packet */
 			log_info("write to client");
@@ -126,7 +126,8 @@ packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
 			/* client packet */
 			log_info("write to dev");
 			TAILQ_FOREACH(sclient, &sclients->clients, entry) {
-				if (sclient->pfd == spfds[i].fd) {
+				if (sclient->pfd == spfds[i].fd &&
+				    sclient->subscribed == 1) {
 					for (k = 0; k < max_subscriptions; k++)
 					{
 						if (sclient->subscriptions[k] >

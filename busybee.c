@@ -70,6 +70,8 @@ write_packet(int blen, int wfd, u_char *x_buff)
 	s_buff =			 x_buff;
 
 	write(w_fd, s_buff, b_len);
+	printf("Bytes: %i\n", b_len);
+	printf("Data: %s\n\n", s_buff);
 }
 
 int

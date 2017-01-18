@@ -51,6 +51,7 @@ void
 bb_sighdlr(int sig)
 {
 	switch (sig) {
+		case SIGHUP:
 		case SIGINT:
 		case SIGTERM:
 			bb_quit = 1;
@@ -58,22 +59,37 @@ bb_sighdlr(int sig)
 	}
 }
 
+void
+write_packet(int blen, int wfd, u_char *x_buff)
+{
+	int				 b_len, w_fd;
+	u_char				*s_buff;
+
+	b_len =				 blen;
+	w_fd =				 wfd;
+	s_buff =			 x_buff;
+
+	write(w_fd, s_buff, b_len);
+}
+
 int
 packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
 	       int i, int x_rcv, struct s_conf *x_devices)
 {
 	struct pollfd			*spfds;
-	struct client_conf		*xcconf;
 	struct s_conf			*sdevs;
+	struct client			*sclient;
+	struct client_conf		*sclients;
 
 	sdevs =				 x_devices;
 	u_char				*s_buff;
-	int				 s_rcv, sb;
+	int				 s_rcv, sb, k, cnfds;
 
 	s_rcv =				 x_rcv;
 	s_buff =			 x_buff;
 	spfds =				 x_pfds;
-	xcconf =			 cconf;
+	sclients =			 cconf;
+	cnfds =				 nfds;
 
 	/*
 	 * inspect packet for subscribe
@@ -83,19 +99,43 @@ packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
 
 	if (s_buff[0] == 0x7E && s_buff[1] == 0x7E && s_buff[2] == 0x7E &&
 	    i >= clients_start) {
-		sb = client_subscribe(xcconf, spfds[i].fd, s_buff);
+		sb = client_subscribe(sclients, spfds[i].fd, s_buff);
 		if (sb == -1) {
 			log_warnx("bad subscribe packet");
-			clean_pfds(xcconf, spfds, i, sdevs);
+			clean_pfds(sclients, spfds, i, sdevs);
 		}
 	} else {
 		/* forward packet to and from subscribers */
 		//~~~subscribe{{name,"telinux"},{devices{device{"data_xbee","Pass1234"}}}}
-		printf("Packet from %i\n", spfds[i].fd);
-		printf("NO subscribe, pass packet\n");
-		printf("Bytes: %i\n", s_rcv);
-		printf("Data: %s\n\n", s_buff);
-
+		if (i < clients_start) {
+			/* dev packet */
+			TAILQ_FOREACH(sclient, &sclients->clients, entry) {
+				for (k = 0; k < cnfds; k++) {
+					if (sclient->subscriptions[k] ==
+					    spfds[i].fd) {
+						log_info("write to client");
+						write_packet(s_rcv,
+							     sclient->pfd,
+							     s_buff);
+					}
+				}
+			}
+		} else {
+			/* client packet */
+			TAILQ_FOREACH(sclient, &sclients->clients, entry) {
+				if (sclient->pfd == spfds[i].fd) {
+					for (k = 0; k < max_subscriptions; k++)
+					{
+						if (sclient->subscriptions[k] >
+							0)
+							write_packet(s_rcv,
+							sclient->
+							subscriptions[k],
+							s_buff);
+					}
+				}
+			}
+		}
 	}
 	return 0;
 }
@@ -249,7 +289,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	signal(SIGTERM, bb_sighdlr);
 	signal(SIGINT, bb_sighdlr);
 	signal(SIGPIPE, SIG_IGN);
-	signal(SIGHUP, SIG_IGN);
+	signal(SIGHUP, bb_sighdlr);
 	signal(SIGCHLD, SIG_DFL);
 
 	while (bb_quit == 0) {

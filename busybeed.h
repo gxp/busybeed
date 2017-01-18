@@ -199,6 +199,7 @@ int				 packet_handler(struct client_conf *,
 		/* parse.y member, called in buffer.c */
 int				 parse_buffer(struct client_conf *, u_char *,
 					      int);
+void				 write_packet(int, int, u_char *);
 
 /* control.c */
 int			 	 control_init(char *);

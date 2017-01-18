@@ -115,11 +115,13 @@ subopts		: {
 		} '{' name '}' ',' '{' devices '}'
 		;
 name		: NAME ',' STRING {
-			/* create new client queue */
-			/* moving to busybee upon accept() */
-			/*c_client = new_client(cpfd);
-			c_client->pfd = cpfd;
-			c_client->name = $3;*/
+			TAILQ_FOREACH(sclient, &sclients->clients, entry) {
+				if (sclient->pfd == my_pfd) {
+					sclient->name = $3;
+					sclient->lastelement = 0;
+					break;
+				}
+			}
 		}
 		;
 devices		: DEVICES '{' subdevs2 '}'
@@ -129,6 +131,15 @@ subdevs2	: subdevs2 subdevs
 		;
 subdevs		: DEVICE '{' STRING ',' STRING '}' optcomma {
 			if (sub_reqs < max_subscriptions) {
+				TAILQ_FOREACH(sclient, &sclients->clients,
+					      entry) {
+					if (sclient->subscribed == 1) {
+						/* client has 
+						 * already subscribed
+						 */
+						continue;
+					}
+				}
 				TAILQ_FOREACH(ldevs, &s_devs->s_devices,
 					      entry) {
 					if (strcmp(ldevs->name, $3) == 0) {
@@ -139,7 +150,8 @@ subdevs		: DEVICE '{' STRING ',' STRING '}' optcomma {
 							ldevs->subscribers++;
 							do_subscribe(my_pfd,
 								     ldevs->fd,
-								     sclients);
+								     sclients
+								);
 						}
 					}
 				}
@@ -761,11 +773,11 @@ do_subscribe(int mypfd, int devfd, struct client_conf *cconf)
 	
 	TAILQ_FOREACH(sclient, &sclients->clients, entry) {
 		if (sclient->pfd == mypfd) {
+			log_info("subscribing %s", sclient->name);
 			sclient->subscribed = 1;
-			
-			// pump on to **subscriptions here
-			// add name to args list
-			// then, i think subscriptions are done!
+			sclient->subscriptions[sclient->lastelement] = devfd;
+			sclient->lastelement++;
+			break;
 		}
 	}
 }

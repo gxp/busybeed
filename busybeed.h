@@ -153,8 +153,9 @@ struct client {
 	char			*name;
 	int			 pfd;
 	int			 subscribed;
-	int			**subscriptions;
 	pthread_t		 me_thread;
+	int			 lastelement;
+	int			 subscriptions[];
 };
 struct client			*c_client;
 
@@ -169,6 +170,7 @@ int				 client_subscribe(struct client_conf *, int,
 int				 parse_buffer(struct client_conf *, u_char *,
 					      int);
 void				 do_subscribe(int, int, struct client_conf *);
+
 struct client_timer_data {
 	int			 seconds;
 	void			 (*fptr)(struct pollfd *pfd,
@@ -183,6 +185,7 @@ void				*run_client_timer(void *data);
 
 /* busybee.c */
 struct client			*new_client(int);
+void				 clean_devs(int[], struct s_conf *);
 void				 clean_pfds(struct client_conf *,
 					    struct pollfd *, int,
 					    struct s_conf *);

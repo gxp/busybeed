@@ -75,7 +75,6 @@ packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
 	spfds =				 x_pfds;
 	xcconf =			 cconf;
 
-	printf("Packet from %i\n", spfds[i].fd);
 	/*
 	 * inspect packet for subscribe
 	 * only socket clients can pass a subscription packet
@@ -90,6 +89,7 @@ packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
 			clean_pfds(xcconf, spfds, i, sdevs);
 		}
 	} else {
+		printf("Packet from %i\n", spfds[i].fd);
 		/* forward packet to subscribers */
 		printf("NO subscribe, pass packet\n");
 		/*printf("Bytes: %i\n", s_rcv);
@@ -97,6 +97,24 @@ packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
 
 	}
 	return 0;
+}
+
+void
+clean_devs(int subscriptions[max_subscriptions], struct s_conf *x_devices)
+{
+	struct s_conf			*sdevs;
+	struct s_device			*ldevs;
+	int				 subs;
+	sdevs =			 x_devices;
+
+	for (subs = 0; subs < max_subscriptions; subs++) {
+		TAILQ_FOREACH(ldevs, &sdevs->s_devices, entry) {
+			if (ldevs->fd == subscriptions[subs]) {
+				log_info("cleaning for %s", ldevs->name);
+				ldevs->subscribers--;
+			}
+		}
+	}
 }
 
 void
@@ -122,17 +140,14 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 			 * if x_devices == null, it's coming from test_client
 			 * and no subscriptions have been attempted, so skip
 			 */
-			if (sdevs != '\0') {
-			/* 
-			 * go through sclient->subscriptions if match
-			 * to iteration through sdevs, then
-			 * s_device->subscribers--
-			 */	
-			}
+			if (sdevs != '\0')
+				clean_devs(sclient->subscriptions, sdevs);
+
 			TAILQ_REMOVE(&sclients->clients, sclient, entry);
 			break;
 		}
 	}
+
 	for(j = i; j < c_nfds; j++)
 	{
 		spfds[j].fd =
@@ -216,7 +231,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	sclients =			 x_clients;
 
 	int				 pi = 0, i, pollsocks;
-	int				 rcv, c_conn = 0, subset = 0;
+	int				 rcv, c_conn = 0;
 	int				 n_client = -1, is_client = 0;
 
 	clients_start =			 (sdevs->count + socks->count);
@@ -325,7 +340,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 						cdata->pfd = pfds;
 						cdata->c_pfd = n_client;
 						nfds++;
-						subset = 1;
+						start_client_timer(cdata);
 					} else {
 						log_info(
 						    "max_clients exhausted");
@@ -367,10 +382,6 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 			}
 		}
 		n_client = -1;
-		if(subset == 1) {
-			start_client_timer(cdata);
-			subset = 0;
-		}
 	}
 	for (i = 0; i < nfds; i++)
 	{
@@ -384,8 +395,8 @@ struct client *
 new_client(int pfd)
 {
 	struct client	*client;
-	
-	if ((client = calloc(1, sizeof(*client))) == NULL)
+	if ((client = calloc(1, sizeof(*client) + (max_subscriptions *
+		sizeof(int)))) == NULL)
 		fatalx("no client calloc");
 	
 	if ((client->pfd = pfd) < 1)

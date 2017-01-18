@@ -165,11 +165,8 @@ struct client_conf {
 
 int				 client_subscribe(struct client_conf *, int,
 						  u_char *);
-
-/* parse.y */
-int				 parse_buffer(struct client_conf *, u_char *,
-					      int);
-void				 do_subscribe(int, int, struct client_conf *);
+void				 test_client(struct pollfd *,
+					     struct client_conf *);
 
 struct client_timer_data {
 	int			 seconds;
@@ -182,20 +179,27 @@ struct client_timer_data {
 
 void				 start_client_timer(struct client_timer_data *);
 void				*run_client_timer(void *data);
+struct client			*new_client(int);
+void				 do_subscribe(int, int, struct client_conf *);
 
 /* busybee.c */
-struct client			*new_client(int);
 void				 clean_devs(int[], struct s_conf *);
 void				 clean_pfds(struct client_conf *,
 					    struct pollfd *, int,
 					    struct s_conf *);
-void				 test_client(struct pollfd *,
-					     struct client_conf *);
-pid_t	 busybee_main(int[2], int, struct busybeed_conf *, struct s_conf *,
-		      struct sock_conf *, struct client_conf *);
+
+pid_t				 busybee_main(int[2], int,
+					      struct busybeed_conf *,
+					      struct s_conf *,
+					      struct sock_conf *,
+					      struct client_conf *);
 int				 packet_handler(struct client_conf *,
 						struct pollfd *, u_char *, int,
 						int, struct s_conf *);
+		/* parse.y member, called in buffer.c */
+int				 parse_buffer(struct client_conf *, u_char *,
+					      int);
+
 /* control.c */
 int			 	 control_init(char *);
 int			 	 control_listen(int);

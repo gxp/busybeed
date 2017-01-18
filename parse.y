@@ -764,24 +764,6 @@ parse_buffer(struct client_conf *cconf, u_char *xbuff, int pfd)
 	return (errors ? -1 : 0);
 }
 
-void
-do_subscribe(int mypfd, int devfd, struct client_conf *cconf)
-{
-	struct client_conf		*subclients;
-	subclients =			 cconf;
-	log_info("do subscribe");
-	
-	TAILQ_FOREACH(sclient, &sclients->clients, entry) {
-		if (sclient->pfd == mypfd) {
-			log_info("subscribing %s", sclient->name);
-			sclient->subscribed = 1;
-			sclient->subscriptions[sclient->lastelement] = devfd;
-			sclient->lastelement++;
-			break;
-		}
-	}
-}
-
 struct device *
 new_device(char *name)
 {

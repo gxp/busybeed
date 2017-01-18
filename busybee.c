@@ -89,11 +89,12 @@ packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
 			clean_pfds(xcconf, spfds, i, sdevs);
 		}
 	} else {
+		/* forward packet to and from subscribers */
+		//~~~subscribe{{name,"telinux"},{devices{device{"data_xbee","Pass1234"}}}}
 		printf("Packet from %i\n", spfds[i].fd);
-		/* forward packet to subscribers */
 		printf("NO subscribe, pass packet\n");
-		/*printf("Bytes: %i\n", s_rcv);
-		printf("Data: %s\n\n", s_buff);*/
+		printf("Bytes: %i\n", s_rcv);
+		printf("Data: %s\n\n", s_buff);
 
 	}
 	return 0;
@@ -177,36 +178,6 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 			fatal("realloc");
 		}
 	}
-}
-
-
-void
-test_client(struct pollfd *x_pfds, struct client_conf *cconf)
-{
-	struct pollfd			*spfds;
-	struct client			*sclient;
-	struct client_conf		*sclients;
-	int				 i;
-	pthread_t			 me;
-
-	spfds =				 x_pfds;
-	sclients =			 cconf;
-	i =				 clients_start;
-	c_nfds =			 nfds;
-	me =				 pthread_self();
-
-	TAILQ_FOREACH(sclient, &sclients->clients, entry) {
-		if (sclient->subscribed != 1) {
-			for (i = 0; i < c_nfds; i++) {
-				if ((spfds[i].fd == sclient->pfd) &&
-				    (sclient->me_thread == me)) {
-					clean_pfds(sclients, spfds, i, NULL);
-					break;
-				}
-			}
-		}
-	}
-	pthread_exit(NULL);
 }
 
 pid_t
@@ -390,17 +361,3 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	}
 	_exit(0);
 }
-
-struct client *
-new_client(int pfd)
-{
-	struct client	*client;
-	if ((client = calloc(1, sizeof(*client) + (max_subscriptions *
-		sizeof(int)))) == NULL)
-		fatalx("no client calloc");
-	
-	if ((client->pfd = pfd) < 1)
-		fatalx("no client pfd");
-	
-	return (client);
-};

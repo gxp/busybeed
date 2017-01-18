@@ -28,10 +28,11 @@
 
 #include "busybeed.h"
 
+extern int				clients_start, c_nfds, nfds;
+
 int
 client_subscribe(struct client_conf *cconf, int pfd, unsigned char *x_buff)
 {
-	/*const char		*my_name;*/
 	unsigned char			*s_buff;
 	int				 parsedb = 0;
 	struct client_conf		*xcconf;
@@ -52,8 +53,7 @@ client_subscribe(struct client_conf *cconf, int pfd, unsigned char *x_buff)
 	 * Accurate example:
 	 * 
 	 * ~~~subscribe{{name,"CLIENTNAME"},{devices{device{"dev1","password1"},device{"dev2","password2"}}}}
-	 * ~~~subscribe{{name,"telinux"},{devices{device{"data_xbee",""}}}},device{"dev2","password2"},device{"dev1","password1"},device{"dev2","password2"},device{"dev1","password1"},device{"dev2","password2"}}}}
-	 * 
+	 *
 	 * If your packet is not accurate, it will fail.
 	 */
 
@@ -115,6 +115,66 @@ start_client_timer(struct client_timer_data *cdata)
 				(void *) cldata);
 	if (tcheck)
 		fatalx("thread creation failed");
-
 }
 
+void
+test_client(struct pollfd *x_pfds, struct client_conf *cconf)
+{
+	struct pollfd			*spfds;
+	struct client			*sclient;
+	struct client_conf		*sclients;
+	int				 i;
+	pthread_t			 me;
+	
+	spfds =				 x_pfds;
+	sclients =			 cconf;
+	i =				 clients_start;
+	c_nfds =			 nfds;
+	me =				 pthread_self();
+
+	TAILQ_FOREACH(sclient, &sclients->clients, entry) {
+		if (sclient->subscribed != 1) {
+			for (i = 0; i < c_nfds; i++) {
+				if ((spfds[i].fd == sclient->pfd) &&
+					(sclient->me_thread == me)) {
+					clean_pfds(sclients, spfds, i, NULL);
+				break;
+					}
+			}
+		}
+	}
+	pthread_exit(NULL);
+}
+
+void
+do_subscribe(int mypfd, int devfd, struct client_conf *cconf)
+{
+	struct client_conf		*sclients;
+	struct client			*sclient;
+
+	sclients =			 cconf;
+
+	TAILQ_FOREACH(sclient, &sclients->clients, entry) {
+		if (sclient->pfd == mypfd) {
+			log_info("subscribing %s", sclient->name);
+			sclient->subscribed = 1;
+			sclient->subscriptions[sclient->lastelement] = devfd;
+			sclient->lastelement++;
+			break;
+		}
+	}
+}
+
+struct client *
+new_client(int pfd)
+{
+	struct client	*client;
+	if ((client = calloc(1, sizeof(*client) + (max_subscriptions *
+		sizeof(int)))) == NULL)
+		fatalx("no client calloc");
+	
+	if ((client->pfd = pfd) < 1)
+		fatalx("no client pfd");
+	
+	return (client);
+};

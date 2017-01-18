@@ -106,7 +106,6 @@ packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
 		}
 	} else {
 		/* forward packet to and from subscribers */
-		//~~~subscribe{{name,"telinux"},{devices{device{"data_xbee","DxB81$62%ee"}}}}
 		if (i < clients_start) {
 			/* dev packet */
 			TAILQ_FOREACH(sclient, &sclients->clients, entry) {

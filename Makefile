@@ -15,8 +15,8 @@ CFLAGS+=	-Wshadow -Wpointer-arith
 CFLAGS+=	-Wsign-compare
 
 CLEANFILES+=	y.tab.h
-#LINKS=		${BINDIR}/busybeed ${BINDIR}/busybctl
-LINKS=		busybeed busybctl
+LINKS=		${BINDIR}/busybeed ${BINDIR}/busybctl
+#LINKS=		busybeed busybctl
 MAN=		busybeed.8 busybctl.8 busybeed.conf.5
 
 .include <bsd.prog.mk>

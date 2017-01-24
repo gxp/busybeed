@@ -53,7 +53,7 @@ client_subscribe(struct client_conf *cconf, int pfd, unsigned char *x_buff)
 	 * Accurate example:
 	 * 
 	 * ~~~subscribe{{name,"CLIENTNAME"},{devices{device{"dev1","password1"},device{"dev2","password2"}}}}
-	 *
+	 * ~~~subscribe{{name,"ttest"},{devices{device{"data_xbee","Pass1234}}}}
 	 * If your packet is not accurate, it will fail.
 	 */
 
@@ -138,8 +138,8 @@ test_client(struct pollfd *x_pfds, struct client_conf *cconf)
 				if ((spfds[i].fd == sclient->pfd) &&
 					(sclient->me_thread == me)) {
 					clean_pfds(sclients, spfds, i, NULL);
-				break;
-					}
+					break;
+				}
 			}
 		}
 	}

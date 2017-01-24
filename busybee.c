@@ -51,11 +51,11 @@ void
 bb_sighdlr(int sig)
 {
 	switch (sig) {
-		case SIGHUP:
-		case SIGINT:
-		case SIGTERM:
-			bb_quit = 1;
-			break;
+	case SIGHUP:
+	case SIGINT:
+	case SIGTERM:
+		bb_quit = 1;
+		break;
 	}
 }
 
@@ -145,7 +145,7 @@ clean_devs(int subscriptions[max_subscriptions], struct s_conf *x_devices)
 	struct s_conf			*sdevs;
 	struct s_device			*ldevs;
 	int				 subs;
-	sdevs =			 x_devices;
+	sdevs =				 x_devices;
 
 	for (subs = 0; subs < max_subscriptions; subs++) {
 		TAILQ_FOREACH(ldevs, &sdevs->s_devices, entry) {

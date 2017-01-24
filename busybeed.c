@@ -20,6 +20,7 @@
 #include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 
 #include <err.h>
 #include <errno.h>
@@ -37,20 +38,22 @@ void			 sighdlr(int);
 __dead void		 usage(void);
 int			 main(int, char *[]);
 void			 ctl_main(int, char*[]);
-
 int			 verbose = 1;
 volatile sig_atomic_t	 quit = 0;
-
+volatile sig_atomic_t	 sigchld = 0;
 void
 sighdlr(int sig)
 {
 	switch (sig) {
-		case SIGQUIT:
-		case SIGTERM:
-		case SIGINT:
-		case SIGHUP:
-			quit = 1;
-			break;
+	case SIGQUIT:
+	case SIGTERM:
+	case SIGINT:
+	case SIGHUP:
+		quit = 1;
+		break;
+	case SIGCHLD:
+		sigchld = 1;
+		break;
 	}
 }
 
@@ -79,8 +82,8 @@ main(int argc, char *argv[])
 	struct sock_conf		 socks;
 	struct s_socket			*lsocks;
 
-	int				 pipe_chld[2];
-	pid_t				 chld_pid = 0;
+	int				 pipe_chld[2], status;
+	pid_t				 chld_pid = 0, chld_chk;
 	int				 fd_ctl, ch, bbdm = 0;
 
 	if (strcmp(__progname, "busybctl") == 0) {
@@ -136,6 +139,7 @@ main(int argc, char *argv[])
 	if (control_listen(fd_ctl) == -1)
 		fatalx("control socket listen failed");
 
+	signal(SIGCHLD, sighdlr);
 	/* fork child process */
 	chld_pid = busybee_main(pipe_chld, fd_ctl, &lconf, &sdevs, &socks,
 				&sclients);
@@ -168,7 +172,22 @@ main(int argc, char *argv[])
 		
 		/* busybctl crap in here eventually */
 		/* write and recv messages with child */
-		sleep(30000);
+
+		sleep(5);
+
+
+
+
+
+		/* finally, check on our kid */
+		if (sigchld) {
+			chld_chk = waitpid(chld_pid, &status, WNOHANG);
+			if (chld_chk != 0) {
+				quit = 1;
+				chld_pid = 0;
+			}
+			sigchld = 0;
+		}
 	}
 
 	if (chld_pid)

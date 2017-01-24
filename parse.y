@@ -30,6 +30,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <syslog.h>
+#include <unistd.h>
 
 #include "busybeed.h"
 
@@ -47,6 +48,8 @@ int		 popfile(void);
 int		 popbuff(void);
 int		 yyparse(void);
 int		 yylex(void);
+int		 yy_flush_buffer(void); /* look up */
+
 int		 yyerror(const char *, ...)
     __attribute__((__format__ (printf, 1, 2)))
     __attribute__((__nonnull__ (1)));
@@ -97,6 +100,7 @@ typedef struct {
 grammar		: /* empty */
 		| grammar '\n'
 		| grammar main '\n'
+		| grammar dosub
 		| grammar error '\n' { file->errors++; }
 		;
 main		: DEFAULT PORT NUMBER {
@@ -108,7 +112,8 @@ main		: DEFAULT PORT NUMBER {
 		| logging
 		| device
 		| devretry
-		| SUBSCRIBE '{' subopts '}'
+		;
+dosub		: SUBSCRIBE '{' subopts '}'
 		;
 subopts		: {
 			sub_reqs = 0;
@@ -152,6 +157,7 @@ subdevs		: DEVICE '{' STRING ',' STRING '}' optcomma {
 								     ldevs->fd,
 								     sclients
 								);
+							continue;
 						}
 					}
 				}
@@ -348,7 +354,7 @@ device		: DEVICE STRING	 {
 		}
 		;
 optnl		: '\n' optnl
-		|
+		| /* empty */
 		;
 nl		: '\n' optnl
 		;
@@ -436,7 +442,7 @@ lgetc(int quotec)
 	int		c, next;
 
 	if (parsebuf) {
-		/* Read character from the parsebuffer instead of input. */
+		/* Read character from the parsebuffer instead of file input */
 		if (parseindex >= 0) {
 			c = parsebuf[parseindex++];
 			if (c != '\0')
@@ -450,9 +456,15 @@ lgetc(int quotec)
 		return (pushback_buffer[--pushback_index]);
 
 	if (quotec) {
+		if (parseindex > 0) {
+			/* malformed packet */
+			yyerror("reached end of packet while parsing "
+			"quoted string");
+			return (-1);
+		}
 		if ((c = getc(file->stream)) == EOF) {
 			yyerror("reached end of file while parsing "
-			    "quoted string");
+			"quoted string");
 			if (file == topfile || popfile() == EOF)
 				return (EOF);
 			return (quotec);
@@ -732,9 +744,9 @@ parse_config(const char *filename, struct busybeed_conf *xconf)
 
 	TAILQ_INIT(&conf->devices);
 
-	if ((file = pushfile(filename)) == NULL) {
+	if ((file = pushfile(filename)) == NULL)
 		return (-1);
-	}
+
 	topfile = file;
 
 	yyparse();
@@ -752,13 +764,15 @@ parse_buffer(struct client_conf *cconf, u_char *xbuff, int pfd)
 	sclients =			 cconf;
 
 	int			 errors = 0;
-	if ((file = pushbuff(xbuff)) == NULL) {
+	if ((file = pushbuff(xbuff)) == NULL)
 		return (-1);
-	}
 
 	topfile = file;
+
 	yyparse();
+
 	errors = file->errors;
+	
 	popbuff();
 
 	return (errors ? -1 : 0);

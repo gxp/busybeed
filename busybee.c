@@ -93,7 +93,7 @@ write_packet(int blen, int wfd, char *name, u_char *x_buff,
 	if (write_it == 1)
 		write(w_fd, s_buff, b_len);
 
-	if (close_it == 1) {
+	if (close_it == 1)
 		shutdown(w_fd,2);
 }
 

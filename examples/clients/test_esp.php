@@ -1,6 +1,6 @@
 <?php
 $address = gethostbyname("localhost");
-$port = 50000;
+$port = 50020;
 
 $socket = socket_create(AF_INET, SOCK_STREAM, SOL_TCP);
 
@@ -18,9 +18,29 @@ $sub_packet = '~~~subscribe{{name,"datatest"},{devices{device{"data_esp","ExE101
 //$sub_packet = '~~~subscribe{{name,ttest},{devices{device{data_xbee,Pass1234}}}}';
 //$sub_packet = '~~~subscribe{{name,"datatest"},{devices{device{"data_xbee","DxB81^62%fg"}}}}';
 
-$sub_packet = '~~~subscribe{{name,"ttest"},{devices{device{"data_xbee","Pass1234"}}}}';
-socket_write($socket, $sub_packet, strlen($sub_packet)+1);
+//$sub_packet = '~~~subscribe{{name,"ttest"},{devices{device{"data_xbee","Pass1234"}}}}';
+socket_write($socket, $sub_packet, strlen($sub_packet));
+echo "sleep 1\n";
+sleep(1);
 
+echo "send at\n";
+
+/*$at_packet = "AT\r\n";
+
+$at_packet = "AT+CIPSEND=0,5\r\n";
+socket_write($socket, $at_packet, strlen($sub_packet));
+
+sleep(1);
+$at_packet = "hello";
+socket_write($socket, $at_packet, strlen($sub_packet));
+sleep(1);*/
+
+
+
+$at_packet = "AT+CIPSTO?\r\n";
+socket_write($socket, $at_packet, strlen($sub_packet));
+
+echo "wait\n";
 $out = '';
 
 while ($out = socket_read($socket, 2048)) {

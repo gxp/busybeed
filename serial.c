@@ -191,10 +191,16 @@ open_devices(struct s_conf *x_devs)
 
 		if (devs->ipaddr != '\0') {
 			/* create fd for ipaddr instead of serial device */
-			if((cs_device->fd =
-				open_client_socket(
-					devs->ipaddr, devs->cport)) == -1)
-				exit(1);
+			if (devs->persistent == 1) {
+				cs_device->persistent = 1;
+				if ((cs_device->fd =
+					open_client_socket(
+					      devs->ipaddr, devs->cport)) == -1)
+					exit(1);
+			} else {
+				/* non persisten device */
+				cs_device->fd = -1;
+			}
 		}
 
 		if (cs_device->fd == '\0')

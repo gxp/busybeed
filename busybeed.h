@@ -83,6 +83,7 @@ struct device {
 	int			 swctrl;
 	char			*password;
 	char			*bind_interface;
+	int			 persistent;
 };
 struct device			*currentdevice;
 
@@ -110,6 +111,7 @@ struct s_device {
 	int			 max_clients;
 	int			 subscribers;
 	int			 listener;
+	int			 persistent;
 	char			*bind_interface;
 	char			*ipaddr;
 	char			*location;
@@ -155,6 +157,7 @@ struct client {
 	int			 subscribed;
 	pthread_t		 me_thread;
 	int			 lastelement;
+	char			**subscriptions_name;
 	int			 subscriptions[];
 };
 struct client			*c_client;
@@ -180,7 +183,8 @@ struct client_timer_data {
 void				 start_client_timer(struct client_timer_data *);
 void				*run_client_timer(void *data);
 struct client			*new_client(int);
-void				 do_subscribe(int, int, struct client_conf *);
+void				 do_subscribe(int, char *, int,
+					      struct client_conf *);
 
 /* busybee.c */
 void				 clean_devs(int[], struct s_conf *);
@@ -199,7 +203,8 @@ int				 packet_handler(struct client_conf *,
 		/* parse.y member, called in buffer.c */
 int				 parse_buffer(struct client_conf *, u_char *,
 					      int);
-void				 write_packet(int, int, u_char *);
+void				 write_packet(int, int, char *, u_char *,
+					      struct s_conf *);
 
 /* control.c */
 int			 	 control_init(char *);

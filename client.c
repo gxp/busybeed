@@ -53,7 +53,7 @@ client_subscribe(struct client_conf *cconf, int pfd, unsigned char *x_buff)
 	 * Accurate example:
 	 * 
 	 * ~~~subscribe{{name,"CLIENTNAME"},{devices{device{"dev1","password1"},device{"dev2","password2"}}}}
-	 * ~~~subscribe{{name,"ttest"},{devices{device{"data_xbee","Pass1234}}}}
+	 * ~~~subscribe{{name,"ttest"},{devices{device{"data_xbee",""}}}}
 	 * If your packet is not accurate, it will fail.
 	 */
 
@@ -147,18 +147,21 @@ test_client(struct pollfd *x_pfds, struct client_conf *cconf)
 }
 
 void
-do_subscribe(int mypfd, int devfd, struct client_conf *cconf)
+do_subscribe(int mypfd, char *name, int devfd, struct client_conf *cconf)
 {
 	struct client_conf		*sclients;
 	struct client			*sclient;
+	char				*sname;
 
 	sclients =			 cconf;
+	sname =				 name;
 
 	TAILQ_FOREACH(sclient, &sclients->clients, entry) {
 		if (sclient->pfd == mypfd) {
-			log_info("subscribing %s", sclient->name);
 			sclient->subscribed = 1;
 			sclient->subscriptions[sclient->lastelement] = devfd;
+			sclient->subscriptions_name[sclient->lastelement] =
+									  sname;
 			sclient->lastelement++;
 			break;
 		}
@@ -175,6 +178,7 @@ new_client(int pfd)
 	
 	if ((client->pfd = pfd) < 1)
 		fatalx("no client pfd");
-	
+	client->subscriptions_name = (char **)malloc(max_subscriptions *
+		sizeof(char *));
 	return (client);
 };

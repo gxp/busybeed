@@ -89,7 +89,7 @@ typedef struct {
 } YYSTYPE;
 %}
 
-%token	BAUD DATA PARITY STOP HARDWARE SOFTWARE PASSWORD NAME RETRY
+%token	BAUD DATA PARITY STOP HARDWARE SOFTWARE PASSWORD NAME RETRY PERSISTENT
 %token	LOG VERBOSE CONNECT DEVICE LISTEN LOCATION IPADDR DEVICES CONNECTION
 %token	DEFAULT PORT MAX CLIENTS SUBSCRIPTIONS BIND INTERFACE SUBSCRIBE
 %token	ERROR
@@ -154,9 +154,10 @@ subdevs		: DEVICE '{' STRING ',' STRING '}' optcomma {
 							 ldevs->max_clients)) {
 							ldevs->subscribers++;
 							do_subscribe(my_pfd,
-								     ldevs->fd,
-								     sclients
-								);
+								    ldevs->name,
+								    ldevs->fd,
+								    sclients
+								    );
 							continue;
 						}
 					}
@@ -297,6 +298,9 @@ socopts1	: LISTEN STRING PORT NUMBER {
 		| PASSWORD STRING {
 			currentdevice->password = $2;
 		}
+		| PERSISTENT NUMBER {
+			currentdevice->persistent = $2;
+		}
 		| bindopts2
 		| maxclientssub
 		;
@@ -326,6 +330,7 @@ device		: DEVICE STRING	 {
 			currentdevice->hwctrl =			 -1;
 			currentdevice->swctrl =			 -1;
 			currentdevice->password =		 "";
+			currentdevice->persistent =		 1;
 		} '{' optnl deviceopts2 '}' {
 			if (currentdevice->ipaddr != '\0' &&
 				currentdevice->cport == -1) {
@@ -410,6 +415,7 @@ int lookup(char *s) {
 		{"name",		NAME},
 		{"parity",		PARITY},
 		{"password",		PASSWORD},
+		{"persistent",		PERSISTENT},
 		{"port",		PORT},
 		{"retry",		RETRY},
 		{"software",		SOFTWARE},

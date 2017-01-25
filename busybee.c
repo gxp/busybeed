@@ -60,16 +60,41 @@ bb_sighdlr(int sig)
 }
 
 void
-write_packet(int blen, int wfd, u_char *x_buff)
+write_packet(int blen, int wfd, char *name, u_char *x_buff,
+	     struct s_conf *x_devices)
 {
-	int				 b_len, w_fd;
+	int				 b_len, w_fd, write_it, close_it;
 	u_char				*s_buff;
+	char				*d_name;
+	struct s_conf			*sdevs;
+	struct s_device			*ldevs;
 
 	b_len =				 blen;
 	w_fd =				 wfd;
 	s_buff =			 x_buff;
+	d_name =			 name;
+	sdevs =				 x_devices;
+	write_it =			 1;
+	close_it =			 0;
 
-	write(w_fd, s_buff, b_len);
+	if (w_fd == -1) {
+		TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
+			if (strcmp(ldevs->name, d_name) == 0) {
+				if ((w_fd = open_client_socket(ldevs->ipaddr,
+							 ldevs->cport)) == -1) {
+					log_info("socket init failure");
+					write_it = 0;
+				}
+				close_it = 1;
+			}
+		}
+	}
+
+	if (write_it == 1)
+		write(w_fd, s_buff, b_len);
+
+	if (close_it == 1) {
+		shutdown(w_fd,2);
 }
 
 int
@@ -114,7 +139,9 @@ packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
 					    spfds[i].fd) {
 						write_packet(s_rcv,
 							     sclient->pfd,
-							     s_buff);
+							     NULL,
+							     s_buff,
+							     sdevs);
 					}
 				}
 			}
@@ -125,12 +152,16 @@ packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
 				    sclient->subscribed == 1) {
 					for (k = 0; k < max_subscriptions; k++)
 					{
-						if (sclient->subscriptions[k] >
-							0)
+						if (sclient->subscriptions[k] !=
+							0) {
 							write_packet(s_rcv,
 							sclient->
 							subscriptions[k],
-							s_buff);
+							sclient->
+							subscriptions_name[k],
+							s_buff,
+							sdevs);
+						}
 					}
 				}
 			}
@@ -166,7 +197,7 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 	struct client_conf		*sclients;
 	struct s_conf			*sdevs;
 
-	int				 toclose;
+	int				 toclose, k;
 	sdevs =				 x_devices;
 	spfds =				 x_pfds;
 	toclose =			 spfds[i].fd;
@@ -198,17 +229,41 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 		close(toclose);
 		log_info("client connection closed");
 	} else {
-		/* could do reconnection
-		 * here for ip_addr
-		 * timeouts? maybe later
-		 * really not needed by
-		 * me now unless 8266
-		 * has a timeout period
-		 * will need to test
-		 * later
+		/* 
+		 * could do reconnection here for ip_addr timeouts here. 
+		 * this would only be for those persistent connection that
+		 * actually did timeout ... see parse.y
+		 * 
+		 * ok, here is the prog note: add persistence to the configs
+		 * for ip_addr devices. for those which have a timeout period
+		 * persistence = 0 (default = 1)
+		 * add to devices struct
+		 * if 0, do not open fd in serial
+		 * do not add to the polled fd's
+		 * if received packet from client, open_client_socket, send
+		 * packet, then close socket
+		 * 
+		 * so, persistence will need to be sent to packet_handler
+		 * as well, so it knows to open new fd
+		 * 
+		 * clients will only ever be able to send to this kind of
+		 * device, as it's not polling for incoming
+		 * 
+		 * for incoming, devices would have to cwipstart to server ap
 		 * 
 		 * start timer, need to add a retry period to parse
 		 */
+
+		TAILQ_FOREACH(sclient, &sclients->clients, entry) {
+			for (k = 0; k < max_subscriptions; k++)
+			{
+				if (sclient->subscriptions[k] == toclose) {
+					sclient->subscriptions[k] = 0;
+					sclient->subscriptions_name[k] = "";
+				}
+			}
+			
+		}
 		pfdcnt--;
 		clients_start--;
 		log_info("non-client connection closed");

@@ -47,10 +47,10 @@ open_devices(struct s_conf *x_devs)
 		cs_device = new_s_device(devs->name);
 		if (devs->devicelocation != '\0') {
 			fd = open(devs->devicelocation, O_RDWR | O_NOCTTY |
-				  O_NDELAY);
+			    O_NDELAY);
 			if (fd == -1) {
 				log_warnx("failed to open %s",
-					  devs->devicelocation);
+				    devs->devicelocation);
 				return(-1);
 			} else {
 				/* normal blocking */
@@ -145,22 +145,21 @@ open_devices(struct s_conf *x_devs)
 						s_opts.c_cflag |= PARENB;
 						s_opts.c_cflag |= PARODD;
 						s_opts.c_iflag |= (INPCK |
-								   ISTRIP);
+						    ISTRIP);
 					} else if (strcmp(devs->parity,
-						"even") == 0) {
+					    "even") == 0) {
 						s_opts.c_cflag |= PARENB;
 						s_opts.c_cflag &= ~PARODD;
 						s_opts.c_iflag |= (INPCK |
-								   ISTRIP);
+						    ISTRIP);
 					}
 				}
 				/* set stop bits */
 				if (devs->stopbits != -1) {
-					if (devs->stopbits == 2) {
+					if (devs->stopbits == 2)
 						s_opts.c_cflag |= CSTOPB;
-					} else {
+					else
 						s_opts.c_cflag &= ~CSTOPB;
-					}
 				}
 				/* set hardware control */
 				/* doesn't seem to be enabled in OpenBSD */
@@ -173,15 +172,14 @@ open_devices(struct s_conf *x_devs)
 				/* set software control */
 				if (devs->swctrl != -1) {
 					s_opts.c_iflag &= ~(IXON | IXOFF |
-							    IXANY);
-					if (devs->swctrl == 1) {
+					    IXANY);
+					if (devs->swctrl == 1)
 						s_opts.c_iflag |= (IXON | IXOFF
-								   | IXANY);
-					}	
+						    | IXANY);
 				}
 				/* set input/output as raw */
 				s_opts.c_lflag &= ~(ICANON | ECHO | ECHOE |
-						    ISIG);
+				    ISIG);
 				s_opts.c_oflag &= ~OPOST;
 				/* Set the new options for the port */
 				tcsetattr(fd, TCSANOW, &s_opts);
@@ -193,14 +191,12 @@ open_devices(struct s_conf *x_devs)
 			/* create fd for ipaddr instead of serial device */
 			if (devs->persistent == 1) {
 				cs_device->persistent = 1;
-				if ((cs_device->fd =
-					open_client_socket(
-					      devs->ipaddr, devs->cport)) == -1)
+				if ((cs_device->fd = open_client_socket(
+				    devs->ipaddr, devs->cport)) == -1)
 					exit(1);
-			} else {
-				/* non persisten device */
+			} else
+				/* non persistent device */
 				cs_device->fd = -1;
-			}
 		}
 
 		if (cs_device->fd == '\0')
@@ -211,12 +207,11 @@ open_devices(struct s_conf *x_devs)
 		cs_device->ipaddr =		 devs->ipaddr;
 		cs_device->cport =		 devs->cport;
 		cs_device->max_clients = 	 devs->max_clients;
-		strlcpy(cs_device->port, devs->port,
-			sizeof(cs_device->port));
+
+		strlcpy(cs_device->port, devs->port, sizeof(cs_device->port));
 		cs_device->bind_interface =	 devs->bind_interface;
 		s_devs->count++;
-		TAILQ_INSERT_TAIL(&s_devs->s_devices,
-				  cs_device, entry);
+		TAILQ_INSERT_TAIL(&s_devs->s_devices, cs_device, entry);
 	}
 	return 0;
 }

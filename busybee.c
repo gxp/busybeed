@@ -46,6 +46,7 @@ static u_char			 buff[BUFFRSIZE];
 int				 max_clients = 1, max_subscriptions = 1;
 int				 ph = -1, c_retry = 30;
 int				 j, c_nfds, nfds, pfdcnt, clients_start;
+struct imsgbuf			*ibuf_main;
 
 void
 bb_sighdlr(int sig)
@@ -61,7 +62,7 @@ bb_sighdlr(int sig)
 
 void
 write_packet(int blen, int wfd, char *name, u_char *x_buff,
-	     struct s_conf *x_devices)
+	struct s_conf *x_devices)
 {
 	int				 b_len, w_fd, write_it, close_it;
 	u_char				*s_buff;
@@ -81,7 +82,7 @@ write_packet(int blen, int wfd, char *name, u_char *x_buff,
 		TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
 			if (strcmp(ldevs->name, d_name) == 0) {
 				if ((w_fd = open_client_socket(ldevs->ipaddr,
-							 ldevs->cport)) == -1) {
+				    ldevs->cport)) == -1) {
 					log_info("socket init failure");
 					write_it = 0;
 				}
@@ -99,7 +100,7 @@ write_packet(int blen, int wfd, char *name, u_char *x_buff,
 
 int
 packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
-	       int i, int x_rcv, struct s_conf *x_devices)
+	int i, int x_rcv, struct s_conf *x_devices)
 {
 	struct pollfd			*spfds;
 	struct s_conf			*sdevs;
@@ -136,34 +137,28 @@ packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
 			TAILQ_FOREACH(sclient, &sclients->clients, entry) {
 				for (k = 0; k < cnfds; k++) {
 					if (sclient->subscriptions[k] ==
-					    spfds[i].fd) {
+					    spfds[i].fd)
 						write_packet(s_rcv,
-							     sclient->pfd,
-							     NULL,
-							     s_buff,
-							     sdevs);
-					}
+						    sclient->pfd, NULL, s_buff,
+						    sdevs);
 				}
 			}
 		} else {
 			/* client packet */
 			TAILQ_FOREACH(sclient, &sclients->clients, entry) {
 				if (sclient->pfd == spfds[i].fd &&
-				    sclient->subscribed == 1) {
+				    sclient->subscribed == 1)
 					for (k = 0; k < max_subscriptions; k++)
 					{
-						if (sclient->subscriptions[k] !=
-							0) {
+						if (sclient->subscriptions[k]
+						    != 0)
 							write_packet(s_rcv,
-							sclient->
-							subscriptions[k],
-							sclient->
-							subscriptions_name[k],
-							s_buff,
-							sdevs);
-						}
+							  sclient->
+							  subscriptions[k],
+							  sclient->
+							  subscriptions_name[k],
+							  s_buff, sdevs);
 					}
-				}
 			}
 		}
 	}
@@ -180,10 +175,8 @@ clean_devs(int subscriptions[max_subscriptions], struct s_conf *x_devices)
 
 	for (subs = 0; subs < max_subscriptions; subs++) {
 		TAILQ_FOREACH(ldevs, &sdevs->s_devices, entry) {
-			if (ldevs->fd == subscriptions[subs]) {
-				log_info("cleaning for %s", ldevs->name);
+			if (ldevs->fd == subscriptions[subs])
 				ldevs->subscribers--;
-			}
 		}
 	}
 }
@@ -208,7 +201,7 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 		if (sclient->pfd == spfds[i].fd) {
 			/*
 			 * clean subscriptions
-			 * if x_devices == null, it's coming from test_client
+			 * if x_devices == null, it's coming from test_client()
 			 * and no subscriptions have been attempted, so skip
 			 */
 			if (sdevs != '\0')
@@ -267,10 +260,9 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 		pfdcnt--;
 		clients_start--;
 		log_info("non-client connection closed");
-		spfds = realloc(spfds, pfdcnt* sizeof(struct pollfd));
-		if (spfds == '\0') {
+		spfds = realloc(spfds, (pfdcnt * sizeof(struct pollfd)));
+		if (spfds == '\0')
 			fatal("realloc");
-		}
 	}
 }
 
@@ -336,8 +328,9 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	}
 	log_procinit("busybee");
 
-	if (pledge("stdio tty rpath wpath inet proc",
-		NULL) == -1)
+	close(pipe_prnt[0]);
+
+	if (pledge("stdio tty rpath wpath inet proc", NULL) == -1)
 		err(1, "pledge");
 
 	signal(SIGTERM, bb_sighdlr);
@@ -346,17 +339,20 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	signal(SIGHUP, bb_sighdlr);
 	signal(SIGCHLD, SIG_DFL);
 
+	if ((ibuf_main = malloc(sizeof(struct imsgbuf))) == NULL)
+		fatal(NULL);
+	imsg_init(ibuf_main, pipe_prnt[1]);
+	
 	while (bb_quit == 0) {
 		/* start polling */
 		pollsocks = poll(pfds, nfds, -1);
-		if (pollsocks == -1) {
+		if (pollsocks == -1)
 			fatal("poll() failed");
-		}
 
 		c_nfds = nfds;
 
 		for (i = 0; i < c_nfds; i++) {
-			if(pfds[i].revents == 0)
+			if (pfds[i].revents == 0)
 				continue;
 
 			/* only check sockets for client connections */
@@ -371,34 +367,27 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 				do {
 					n_client = accept(lsocks->listener,
 								NULL, NULL);
-					if (n_client == -1) {
+					if (n_client == -1)
 						if (errno != EWOULDBLOCK) {
 							fatal("failed");
 							break;
 						}
-					}
 					if (nfds < pfdcnt) {
 						int opts =
 						    fcntl(n_client, F_GETFL);
-						if(opts < 0)
-						{
+						if (opts < 0)
 							fatal("opts failed");
-						}
-
 						opts |= O_NONBLOCK;
-
-						if(fcntl(n_client,
-							F_SETFL, opts) < 0)
-						{
+						if (fcntl(n_client, F_SETFL,
+						    opts) < 0)
 							fatal("F_SETFL");
-						}
 						pfds[nfds].fd = n_client;
 						pfds[nfds].events = POLLIN;
 						log_info("client accepted");
 						c_client = new_client(n_client);
 						TAILQ_INSERT_TAIL(
-							&sclients->clients,
-							c_client, entry);
+						    &sclients->clients,
+						    c_client, entry);
 						cdata->seconds = SUBTIME;
 						cdata->fptr = test_client;
 						cdata->cconf = sclients;
@@ -418,27 +407,23 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 				do {
 					memset(buff, 0, sizeof(buff));
 					rcv = read(pfds[i].fd, buff,
-						  sizeof(buff));
+					    sizeof(buff));
 					if (rcv < 0) {
 						if (errno != EWOULDBLOCK)
-						{
-							log_warn("recv()"	\
-								 " failed");
-						}
-						if (errno == EBADF) {
+							log_warn("recv() "	
+							    "failed");
+						if (errno == EBADF)
 							fatalx("error");
-						}
 						break;
 					}
 					if (rcv == 0) {
 						clean_pfds(sclients, pfds, i,
-							   sdevs);
+						    sdevs);
 						break;
 					}
 
 					ph = packet_handler(sclients, pfds,
-							    buff, i, rcv,
-							    sdevs);
+					    buff, i, rcv, sdevs);
 
 					if (ph == 0)
 						break;
@@ -450,7 +435,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	}
 	for (i = 0; i < nfds; i++)
 	{
-		if(pfds[i].fd >= 0)
+		if (pfds[i].fd >= 0)
 			close(pfds[i].fd);
 	}
 	_exit(0);

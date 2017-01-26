@@ -58,11 +58,10 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 	TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
 		c_socket = new_socket(ldevs->port);
 
-		if (ldevs->bind_interface != '\0') {
+		if (ldevs->bind_interface != '\0')
 			iface = get_ifaddrs(ldevs->bind_interface);
-		} else {
+		else
 			iface = NULL;
-		}
 
 		if (strlcpy(c_socket->port, ldevs->port,
 			    sizeof(c_socket->port)) == '\0')
@@ -70,9 +69,9 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 
 		sock_r = c_socket->listener = create_socket(ldevs->port, iface);
 		s_socks->count++;
-		if ( sock_r == -1) {
+		if ( sock_r == -1)
 			return -1;
-		} else if (sock_r == -2) {
+		else if (sock_r == -2) {
 			fail = 1;
 			TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry) {
 				if (strcmp(ldevs->port, lsocks->port) == 0) {
@@ -86,9 +85,9 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 				fatalx("can't find listener");
 				return -1;
 			}
-		} else {
+		} else
 			listener =  c_socket->listener;
-		}
+
 		ldevs->listener = listener;
 		TAILQ_INSERT_TAIL(&s_socks->s_sockets, c_socket, entry);
 	}
@@ -108,7 +107,7 @@ create_socket(char *port, char *b_iface)
 	addr_hints.ai_socktype = SOCK_STREAM;
 	addr_hints.ai_flags |= AI_PASSIVE;
 
-	if((gai = getaddrinfo(b_iface, port, &addr_hints, &addr_res)) != 0) {
+	if ((gai = getaddrinfo(b_iface, port, &addr_hints, &addr_res)) != 0) {
 		fatalx("getaddrinfo failed: %s", gai_strerror(gai));
 		return -1;
 	}
@@ -116,31 +115,31 @@ create_socket(char *port, char *b_iface)
 	for(loop_res = addr_res; loop_res != NULL;
 		loop_res = loop_res->ai_next) {
 
-		if((sock_fd = socket(loop_res->ai_family, loop_res->ai_socktype,
-				     loop_res->ai_protocol)) == -1) {
+		if ((sock_fd = socket(loop_res->ai_family,
+		    loop_res->ai_socktype, loop_res->ai_protocol)) == -1) {
 			fatalx("unable to create socket");
 			return -1;
 		}
 
-		if(setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &o_val,
-			      sizeof(int)) == -1) {
+		if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, &o_val,
+		    sizeof(int)) == -1) {
 			fatalx("setsockopt error");
 			freeaddrinfo(addr_res);
 			return -1; 
 		}
 
-		if(bind(sock_fd, loop_res->ai_addr,
-			loop_res->ai_addrlen) == -1) {
+		if (bind(sock_fd, loop_res->ai_addr,
+		    loop_res->ai_addrlen) == -1) {
 			close(sock_fd);
 			log_warnx("%s%s", "bind address busy\n",
-						" -checking existing sockets");
+			    " -checking existing sockets");
 			return -2;
 		}
 
 		break;
 	}
 
-	if(loop_res == NULL) {
+	if (loop_res == NULL) {
 		fatalx("can't bind to port");
 		freeaddrinfo(addr_res);
 		return -1;
@@ -148,7 +147,7 @@ create_socket(char *port, char *b_iface)
 
 	freeaddrinfo(addr_res);
 
-	if(listen(sock_fd, SOMAXCONN) == -1) {
+	if (listen(sock_fd, SOMAXCONN) == -1) {
 		fatalx("unable to listen on socket");
 		return -1;
 	}
@@ -222,8 +221,8 @@ char
 
 	while (ifap) {
 		if ((ifap->ifa_addr) &&
-			((ifap->ifa_addr->sa_family == AF_INET) ||
-			(ifap->ifa_addr->sa_family == AF_INET6))) {
+		    ((ifap->ifa_addr->sa_family == AF_INET) ||
+		    (ifap->ifa_addr->sa_family == AF_INET6))) {
 
 			if (ifap->ifa_addr->sa_family == AF_INET) {
 				struct sockaddr_in *in =
@@ -235,7 +234,7 @@ char
 			}
 
 			if ((strcmp(name, ifap->ifa_name) == 0) &&
-				addr != '\0') {
+			    addr != '\0') {
 				return addr;
 				freeifaddrs(ifap);
 			}

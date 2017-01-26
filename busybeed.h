@@ -17,7 +17,9 @@
 
 #include <sys/types.h>
 #include <sys/queue.h>
+#include <sys/uio.h>
 
+#include <imsg.h>
 #include <poll.h>
 #include <pthread.h>
 #include <stdarg.h>
@@ -94,7 +96,7 @@ struct busybeed_conf {
 };
 
 int				 parse_config(const char *,
-					      struct busybeed_conf *);
+				     struct busybeed_conf *);
 
 /* serial.c */
 
@@ -128,7 +130,7 @@ struct s_conf {
 /* sockets.c */
 extern struct sock_conf		*s_socks;
 extern int			 create_sockets(struct sock_conf *,
-						struct s_conf *);
+				     struct s_conf *);
 extern char			*get_ifaddrs(char *);
 
 struct s_socket			*new_socket(char *);
@@ -167,14 +169,14 @@ struct client_conf {
 };
 
 int				 client_subscribe(struct client_conf *, int,
-						  u_char *);
+				     u_char *);
 void				 test_client(struct pollfd *,
-					     struct client_conf *);
+				     struct client_conf *);
 
 struct client_timer_data {
 	int			 seconds;
 	void			 (*fptr)(struct pollfd *pfd,
-					 struct client_conf *cconf);
+				     struct client_conf *cconf);
 	struct client_conf	*cconf;
 	struct pollfd		*pfd;
 	int			 c_pfd;
@@ -184,27 +186,24 @@ void				 start_client_timer(struct client_timer_data *);
 void				*run_client_timer(void *data);
 struct client			*new_client(int);
 void				 do_subscribe(int, char *, int,
-					      struct client_conf *);
+				     struct client_conf *);
 
 /* busybee.c */
 void				 clean_devs(int[], struct s_conf *);
 void				 clean_pfds(struct client_conf *,
-					    struct pollfd *, int,
-					    struct s_conf *);
+				     struct pollfd *, int, struct s_conf *);
 
 pid_t				 busybee_main(int[2], int,
-					      struct busybeed_conf *,
-					      struct s_conf *,
-					      struct sock_conf *,
-					      struct client_conf *);
+				     struct busybeed_conf *,struct s_conf *,
+				     struct sock_conf *, struct client_conf *);
 int				 packet_handler(struct client_conf *,
-						struct pollfd *, u_char *, int,
-						int, struct s_conf *);
+				    struct pollfd *, u_char *, int, int,
+				    struct s_conf *);
 		/* parse.y member, called in buffer.c */
 int				 parse_buffer(struct client_conf *, u_char *,
-					      int);
+				     int);
 void				 write_packet(int, int, char *, u_char *,
-					      struct s_conf *);
+				     struct s_conf *);
 
 /* control.c */
 int			 	 control_init(char *);

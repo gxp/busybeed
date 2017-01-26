@@ -17,9 +17,7 @@
 
 /* I've taken and learned a lot from ntpd. Thank you! */
 
-#include <sys/queue.h>
 #include <sys/socket.h>
-#include <sys/types.h>
 #include <sys/wait.h>
 
 #include <err.h>
@@ -28,7 +26,6 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-#include <stdarg.h>
 #include <syslog.h>
 #include <unistd.h>
 
@@ -41,6 +38,8 @@ void			 ctl_main(int, char*[]);
 int			 verbose = 1;
 volatile sig_atomic_t	 quit = 0;
 volatile sig_atomic_t	 sigchld = 0;
+struct imsgbuf		*ibuf;
+
 void
 sighdlr(int sig)
 {
@@ -61,14 +60,12 @@ __dead void
 usage(void)
 {
 	extern char *__progname;
-	
+
 	if (strcmp(__progname, "busybctl") == 0)
-		fprintf(stderr,
-			"usage: busybctl -n name -d /dev/device etc\n");
-		else
-			fprintf(stderr, "usage: %s [-d]\n",
-				__progname);
-			exit(1);
+		fprintf(stderr, "usage: busybctl -n name -d /dev/device etc\n");
+	else
+		fprintf(stderr, "usage: %s [-d]\n", __progname);
+	exit(1);
 }
 
 int
@@ -82,14 +79,12 @@ main(int argc, char *argv[])
 	struct sock_conf		 socks;
 	struct s_socket			*lsocks;
 
-	int				 pipe_chld[2], status;
+	int				 pipe_chld[2];
 	pid_t				 chld_pid = 0, chld_chk;
-	int				 fd_ctl, ch, bbdm = 0;
+	int				 status, fd_ctl, ch, bbdm = 0;
 
-	if (strcmp(__progname, "busybctl") == 0) {
+	if (strcmp(__progname, "busybctl") == 0)
 		ctl_main(argc, argv);
-		/* NOTREACHED */
-	}
 
 	memset(&lconf, 0, sizeof(lconf));
 	memset(&sdevs, 0, sizeof(sdevs));
@@ -106,7 +101,6 @@ main(int argc, char *argv[])
 			break;
 		default:
 			usage();
-			/* NOTREACHED */
 		}
 	}
 
@@ -142,7 +136,7 @@ main(int argc, char *argv[])
 	signal(SIGCHLD, sighdlr);
 	/* fork child process */
 	chld_pid = busybee_main(pipe_chld, fd_ctl, &lconf, &sdevs, &socks,
-				&sclients);
+	    &sclients);
 	
 	log_procinit("[priv]");
 	
@@ -154,11 +148,16 @@ main(int argc, char *argv[])
 
 	close(pipe_chld[1]);
 
-	if (pledge("stdio tty rpath wpath inet proc",
-		NULL) == -1)
+	if ((ibuf = malloc(sizeof(struct imsgbuf))) == NULL)
+		fatal(NULL);
+	imsg_init(ibuf, pipe_chld[0]);
+
+	if (pledge("stdio tty rpath wpath inet proc", NULL) == -1)
 		err(1, "pledge");
 
 	while (quit == 0) {
+
+
 		/* make parent daemon */
 		if (bbdm == 0) {
 			bbdm = 1;
@@ -172,12 +171,9 @@ main(int argc, char *argv[])
 		
 		/* busybctl crap in here eventually */
 		/* write and recv messages with child */
+		/* time to learn imsg_init */
 
 		sleep(5);
-
-
-
-
 
 		/* finally, check on our kid */
 		if (sigchld) {

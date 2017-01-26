@@ -71,13 +71,12 @@ extern int			 max_clients, max_subscriptions, verbose;
 extern int			 c_retry;
 const char			*parity[4] = {"none", "odd", "even", "space"};
 const int			 baudrates[18] = {50, 75, 110, 134, 150, 200,
-						  300, 600, 1200, 1800, 2400,
-						  4800, 9600, 38400, 57600,
-						  76800, 115200};
-const int			 s_parity =
-					(sizeof(parity)/sizeof(const char *));
-const int			 c_bauds =
-					(sizeof(baudrates)/sizeof(const int));
+				     300, 600, 1200, 1800, 2400, 4800, 9600,
+				     38400, 57600, 76800, 115200};
+const int			 s_parity = (sizeof(parity) / 
+				     sizeof(const char *));
+const int			 c_bauds = (sizeof(baudrates) / 
+				     sizeof(const int));
 int				 p_c = 0, b_c = 0, sub_reqs = 0;
 
 typedef struct {
@@ -138,31 +137,27 @@ subdevs		: DEVICE '{' STRING ',' STRING '}' optcomma {
 			if (sub_reqs < max_subscriptions) {
 				TAILQ_FOREACH(sclient, &sclients->clients,
 					      entry) {
-					if (sclient->subscribed == 1) {
+					if (sclient->subscribed == 1)
 						/* client has 
 						 * already subscribed
 						 */
 						continue;
-					}
 				}
 				TAILQ_FOREACH(ldevs, &s_devs->s_devices,
 					      entry) {
-					if (strcmp(ldevs->name, $3) == 0) {
+					if (strcmp(ldevs->name, $3) == 0)
 						if (strcmp(ldevs->password, $5)
-							== 0 &&
-							(ldevs->subscribers < 
-							 ldevs->max_clients)) {
+						    == 0 && (ldevs->subscribers
+						    < ldevs->max_clients)) {
 							ldevs->subscribers++;
 							do_subscribe(my_pfd,
-								    ldevs->name,
-								    ldevs->fd,
-								    sclients
-								    );
+							    ldevs->name,
+							    ldevs->fd,
+							    sclients);
 							continue;
 						}
-					}
 				}
-			} else {
+			} else
 				log_warnx("max subscription requests exceeded");
 				/*
 				 * no need to kill a client entirely for 
@@ -174,7 +169,7 @@ subdevs		: DEVICE '{' STRING ',' STRING '}' optcomma {
 				 * yyerror("max subscription requests exceeded");
 				 * YYERROR;
 				 */
-			}
+
 			sub_reqs++;
 		}
 		;
@@ -239,9 +234,8 @@ locopts1	: LISTEN STRING PORT NUMBER {
 			if ($2 > 8 || $2 < 5) {
 				yyerror("data bits syntax error");
 				YYERROR;
-			} else {
+			} else
 				currentdevice->databits = $2;
-			}
 		}
 		| PARITY STRING {
 			for (p_c = 0; p_c < s_parity; p_c++) {
@@ -259,25 +253,22 @@ locopts1	: LISTEN STRING PORT NUMBER {
 			if ($2 > 2 || $2 < 1) {
 				yyerror("stop bits syntax error");
 				YYERROR;
-			} else {
+			} else
 				currentdevice->stopbits = $2;
-			}
 		}
 		| HARDWARE NUMBER {
 			if ($2 > 1 || $2 < 0) {
 				yyerror("hardware syntax error");
 				YYERROR;
-			} else {
+			} else
 				currentdevice->hwctrl = $2;
-			}
 		}
 		| SOFTWARE NUMBER {
 			if ($2 > 1 || $2 < 0) {
 				yyerror("software syntax error");
 				YYERROR;
-			} else {
+			} else
 				currentdevice->swctrl = $2;
-			}
 		}
 		| PASSWORD STRING {
 			currentdevice->password = $2;

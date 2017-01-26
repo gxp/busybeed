@@ -14,6 +14,8 @@ CFLAGS+=	-Wmissing-declarations
 CFLAGS+=	-Wshadow -Wpointer-arith
 CFLAGS+=	-Wsign-compare
 
+LDADD+=		-lutil
+
 CLEANFILES+=	y.tab.h
 #LINKS=		${BINDIR}/busybeed ${BINDIR}/busybctl
 LINKS=		busybeed busybctl

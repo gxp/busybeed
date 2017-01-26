@@ -14,23 +14,107 @@
 .\" ACTION OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF
 .\" OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
 .\" 
-.Dd $Mdocdate: November 21, 2016 $
-.Dt BUSYBEED 1
+.Dd $Mdocdate: January 26 2017 $
+.Dt BUSYBEED 8
 .Os
 .Sh NAME
 .Nm busybeed
-.Nd serial device control utility
+.Nd busybee daemon
 .Sh SYNOPSIS
 .Nm busybeed
-.Op Fl sv
-.Op Fl d Ar host : Ns Ar port
-.Op Fl f Ar device
-.Op Ar command args ...
+.Bk -words
+.Op Fl d
+.Ek
 .Sh DESCRIPTION
 The
 .Nm
-persistent = 0 is not polled
-program is a serial device control utility,
-with support password protection and readable names. 
+daemon provides a mechanism for clients and client processes to communicate
+with an array of serial and IoT devices. At its core,
+.Nm
+is primarily a packet repeater in that it polls for packets to swap between
+subscriber clients and devices. However,
+.Nm
+also provides password control over those connections, including client limits.
 .Pp
+.Nm
+can connect directly to serial devices, IoT IP devices, and single socket
+connections.
+.Pp
+The options are as follows:
+.Bl -tag -width "-f fileXXX"
+.It Fl d
+Do not daemonize. If this option is specified, 
+.Nm
+will run in the foreground and log to
+.Em stderr .
+.It Fl v
+This option allows
+.Nm
+to send DEBUG priority messages to syslog.
+.El
+.Pp
+Example devices tested: XBee, NF24, ESP8266.
+.Pp
+Subscribers to a device pass a simple, human-readable packet to
+.Nm .
+. The format is as follows, without the line breaks and tabs.
+This example is only for initial readability and help in understanding
+the format!
+.Pp
+Subscription packets must begin with 3 * 0x7E
+.Bd -literal -offset indent
+~~~subscribe{
+	{name,"CLIENTNAME"},
+	{devices{
+		device{"dev1","password1"},
+		device{"dev2","password2"}
+		}
+	}
+}
+.Ed
+.Pp
+An accurate example packet:
+.Bd -literal -offset indent
+~~~subscribe{{name,"CLIENTNAME"},{devices{device{"dev1","password1"}}}}
+.Ed
+.Pp
+.Nm
+is usually started at boot time, and can be enabled by adding
+.Nm
+to the
+.Va pkg_scripts
+line in
+.Pa /etc/rc.conf.local .
+See
+.Xr rc 8
+and
+.Xr rc.conf 8
+for more information on the boot process and enabling daemons.
+.Pp
+When
+.Nm
+starts up, it reads settings from its configuration file, typically
+.Xr busybeed.conf 5 ,
+and creates sockets and file descriptor connections.
+.Sh FILES
+.Bl -tag -width "/var/run/busybeedd.sockXXX" -compact
+.It Pa /etc/busybeed.conf
+Default configuration file.
+.It Pa /var/run/busybeed.sock
+Socket file for communication with
+.Xr busybctl 8 .
+.El
+.Sh SEE ALSO
+.Xr busybeed.conf 5 ,
+.Xr busybctl 8 ,
+.Xr rc 8 ,
+.Xr rc.conf 8
+.Sh STANDARDS
+.Rs
+.Re
+.Sh HISTORY
+The
+.Nm
+program first began development on
+.Ox 5.9 .
 

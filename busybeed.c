@@ -64,7 +64,7 @@ usage(void)
 	if (strcmp(__progname, "busybctl") == 0)
 		fprintf(stderr, "usage: busybctl -n name -d /dev/device etc\n");
 	else
-		fprintf(stderr, "usage: %s [-d]\n", __progname);
+		fprintf(stderr, "usage: %s [-dv]\n", __progname);
 	exit(1);
 }
 

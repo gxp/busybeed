@@ -1,4 +1,15 @@
-#busybeed
+# busybeed
+The busybeed OpenBSD daemon provides a mechanism for clients and client
+processes to communicate with an array for serial and IoT devices. At
+its core, busybeed is primarily a packet repeater in that it polls for
+packets to swap between subscriber clients and devices. However,
+busybeed also provides password control over those connections,
+including client limits.
+
+---------------------------------------------------
+Man pages
+---------------------------------------------------
+
 NAME
 
 	busybeed -- busybee daemon

@@ -113,7 +113,7 @@ start_client_timer(struct client_timer_data *cdata)
 	cldata =			 cdata;
 
 	tcheck = pthread_create(&client_check, NULL, run_client_timer,
-				(void *) cldata);
+	    (void *) cldata);
 	if (tcheck)
 		fatalx("thread creation failed");
 }

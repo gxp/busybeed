@@ -17,11 +17,14 @@
 
 /* I've taken and learned a lot from ntpd. Thank you! */
 
+#include <sys/queue.h>
 #include <sys/socket.h>
+#include <sys/uio.h>
 #include <sys/wait.h>
 
 #include <err.h>
 #include <errno.h>
+#include <imsg.h>
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>

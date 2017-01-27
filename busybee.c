@@ -19,10 +19,12 @@
 #include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/types.h>
+#include <sys/uio.h>
 
 #include <err.h>
 #include <errno.h>
 #include <fcntl.h>
+#include <imsg.h>
 #include <math.h>
 #include <pthread.h>
 #include <poll.h>

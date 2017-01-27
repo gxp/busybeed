@@ -3,7 +3,7 @@
 /*
  * Copyright (c) 2003, 2004 Henning Brauer <henning@openbsd.org>
  * Copyright (c) 2012 Mike Miller <mmiller@mgm51.com>
- * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.com>
+ * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.net>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above

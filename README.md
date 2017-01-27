@@ -7,7 +7,7 @@ busybeed also provides password control over those connections,
 including client limits.
 
 ---------------------------------------------------
-Man pages
+Man Pages
 ---------------------------------------------------
 
 NAME

@@ -1,6 +1,6 @@
 /* $OpenBSD: busybee.c v.1.00 2016/11/29 17:42:00 baseprime Exp $ */
 /*
- * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.com>
+ * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.net>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above

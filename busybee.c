@@ -49,7 +49,7 @@ int				 max_clients = 1, max_subscriptions = 1;
 int				 ph = -1, c_retry = 30;
 int				 j, c_nfds, nfds, pfdcnt, clients_start;
 struct imsgbuf			*ibuf_main;
-
+struct ctl_conns		 ctl_conns;
 void
 bb_sighdlr(int sig)
 {
@@ -249,6 +249,11 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 		 * start timer, need to add a retry period to parse
 		 */
 
+		/*
+		 * NEED TO CHECK ON toclose HERE
+		 * NEED TO SHUTDOWN PORT IF ONLY ONE
+		 */
+
 		TAILQ_FOREACH(sclient, &sclients->clients, entry) {
 			for (k = 0; k < max_subscriptions; k++)
 			{
@@ -341,6 +346,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	signal(SIGHUP, bb_sighdlr);
 	signal(SIGCHLD, SIG_DFL);
 
+	TAILQ_INIT(&ctl_conns);
 	if ((ibuf_main = malloc(sizeof(struct imsgbuf))) == NULL)
 		fatal(NULL);
 	imsg_init(ibuf_main, pipe_prnt[1]);

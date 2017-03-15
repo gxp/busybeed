@@ -204,8 +204,22 @@ int				 parse_buffer(struct client_conf *, u_char *,
 				     int);
 void				 write_packet(int, int, char *, u_char *,
 				     struct s_conf *);
+extern struct ctl_conns 	 ctl_conns;
 
 /* control.c */
+struct ctl_conn {
+	TAILQ_ENTRY(ctl_conn)	entry;
+	struct imsgbuf		ibuf;
+};
+
+TAILQ_HEAD(ctl_conns, ctl_conn)	;
+
 int			 	 control_init(char *);
 int			 	 control_listen(int);
+void			 	 control_shutdown(int);
+void			 	 control_cleanup(const char *);
+int			 	 control_accept(int);
 void				 session_socket_blockmode(int, enum blockmodes);
+int				 control_close(int);
+struct ctl_conn			*control_connbyfd(int);
+int				 control_dispatch_msg(struct pollfd *, u_int *);

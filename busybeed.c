@@ -20,6 +20,7 @@
 #include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
+#include <sys/un.h>
 #include <sys/wait.h>
 
 #include <err.h>
@@ -238,8 +239,28 @@ main(int argc, char *argv[])
 void
 ctl_main(int argc, char *argv[])
 {
+	
+	struct sockaddr_un	 sa;
+	struct imsg		 imsg;
+	struct imsgbuf		*ibuf_ctl;
+	int			 fd;
 	char			*sockname;
-	sockname =		 CTLSOCKET;
+	
+	sockname = CTLSOCKET;
+
+	if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)
+		err(1, "ntpctl: socket");
+	
+	memset(&sa, 0, sizeof(sa));
+	sa.sun_family = AF_UNIX;
+	if (strlcpy(sa.sun_path, sockname, sizeof(sa.sun_path)) >=
+		sizeof(sa.sun_path))
+		errx(1, "ctl socket name too long");
+	if (connect(fd, (struct sockaddr *)&sa, sizeof(sa)) == -1)
+		err(1, "connect: %s", sockname);
+	
+	if (pledge("stdio", NULL) == -1)
+		err(1, "pledge");
 
 /* busybctl crap
  * add devices

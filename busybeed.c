@@ -20,6 +20,7 @@
 #include <sys/queue.h>
 #include <sys/socket.h>
 #include <sys/uio.h>
+#include <sys/un.h>
 #include <sys/wait.h>
 
 #include <err.h>
@@ -41,6 +42,9 @@ void			 ctl_main(int, char*[]);
 int			 verbose = 1;
 volatile sig_atomic_t	 quit = 0;
 volatile sig_atomic_t	 sigchld = 0;
+
+int			 nfds;
+struct pollfd		*pfd = NULL;
 struct imsgbuf		*ibuf;
 
 void
@@ -93,6 +97,7 @@ main(int argc, char *argv[])
 	memset(&sdevs, 0, sizeof(sdevs));
 	memset(&socks, 0, sizeof(socks));
 	memset(&sclients, 0, sizeof(sclients));
+	memset(&pfd, 0, sizeof(pfd));
 
 	while ((ch = getopt(argc, argv, "dv")) != -1) {
 		switch (ch) {
@@ -158,11 +163,32 @@ main(int argc, char *argv[])
 	if (pledge("stdio tty rpath wpath inet proc", NULL) == -1)
 		err(1, "pledge");
 
-	while (quit == 0) {
+	if (bbdm == 0) {
+		bbdm = 1;
+		log_init(lconf.debug, LOG_DAEMON);
+		log_verbose(lconf.verbose);
+		log_info("busybeed started");
+		if (!lconf.debug)
+			if (daemon(1, 0))
+				fatal("daemon");
+	}
 
+	while (quit == 0) {
+		pfd = malloc(sizeof(struct pollfd));
+		pfd[0].fd = ibuf->fd;
+		pfd[0].events = POLLIN;
+
+		if (ibuf->w.queued)
+			pfd[0].events |= POLLOUT;
+
+		if ((nfds = poll(pfd, 0, -1)) == -1)
+			if (errno != EINTR) {
+				log_warn("poll error");
+				quit = 1;
+			}
 
 		/* make parent daemon */
-		if (bbdm == 0) {
+		/*if (nfds == 0 && bbdm == 0) {
 			bbdm = 1;
 			log_init(lconf.debug, LOG_DAEMON);
 			log_verbose(lconf.verbose);
@@ -170,13 +196,19 @@ main(int argc, char *argv[])
 			if (!lconf.debug)
 				if (daemon(1, 0))
 					fatal("daemon");
-		}
-		
-		/* busybctl crap in here eventually */
-		/* write and recv messages with child */
-		/* time to learn imsg_init */
+		}*/
 
-		sleep(5);
+		if (nfds > 0 && (pfd[0].revents & POLLOUT))
+			if (msgbuf_write(&ibuf->w) <= 0 && errno != EAGAIN) {
+				log_warn("pipe write error (to child)");
+				quit = 1;
+			}
+
+		if (nfds > 0 && pfd[0].revents & POLLIN) {
+			nfds--;
+			/*if (dispatch_imsg(&lconf, pw_dir, pw_uid, pw_gid) == -1)
+				quit = 1;*/
+		}
 
 		/* finally, check on our kid */
 		if (sigchld) {
@@ -207,8 +239,28 @@ main(int argc, char *argv[])
 void
 ctl_main(int argc, char *argv[])
 {
+	
+	struct sockaddr_un	 sa;
+	struct imsg		 imsg;
+	struct imsgbuf		*ibuf_ctl;
+	int			 fd;
 	char			*sockname;
-	sockname =		 CTLSOCKET;
+	
+	sockname = CTLSOCKET;
+
+	if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1)
+		err(1, "ntpctl: socket");
+	
+	memset(&sa, 0, sizeof(sa));
+	sa.sun_family = AF_UNIX;
+	if (strlcpy(sa.sun_path, sockname, sizeof(sa.sun_path)) >=
+		sizeof(sa.sun_path))
+		errx(1, "ctl socket name too long");
+	if (connect(fd, (struct sockaddr *)&sa, sizeof(sa)) == -1)
+		err(1, "connect: %s", sockname);
+	
+	if (pledge("stdio", NULL) == -1)
+		err(1, "pledge");
 
 /* busybctl crap
  * add devices

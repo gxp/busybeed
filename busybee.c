@@ -198,6 +198,8 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 	toclose =			 spfds[i].fd;
 	sclients =			 cconf;
 
+	log_info("client %s closing", sclient->name);
+
 	TAILQ_FOREACH_SAFE(sclient, &sclients->clients, entry, tmp_sclient) {
 		tmp_sclient = TAILQ_NEXT(sclient, entry);
 		if (sclient->pfd == spfds[i].fd) {

@@ -63,10 +63,12 @@ struct busybeed_conf		*conf;
 struct s_device			*ldevs;
 struct client_conf		*sclients;
 struct client			*sclient;
-int				 my_pfd;
+int				 my_pfd, fail;
 
 char				 default_port[6];
 char				*bind_interface = NULL;
+char				*my_name;
+
 extern int			 max_clients, max_subscriptions, verbose;
 extern int			 c_retry;
 const char			*parity[4] = {"none", "odd", "even", "space"};
@@ -122,6 +124,7 @@ name		: NAME ',' STRING {
 			TAILQ_FOREACH(sclient, &sclients->clients, entry) {
 				if (sclient->pfd == my_pfd) {
 					sclient->name = $3;
+					my_name = $3;
 					sclient->lastelement = 0;
 					break;
 				}
@@ -145,15 +148,47 @@ subdevs		: DEVICE '{' STRING ',' STRING '}' optcomma {
 				}
 				TAILQ_FOREACH(ldevs, &s_devs->s_devices,
 					      entry) {
+					/* 
+					 * check subscribing
+					 * on correct listener
+					 */
+					TAILQ_FOREACH(sclient,
+					    &sclients->clients, entry) {
+						fail = 0;
+						if (sclient->pfd == my_pfd) {
+							if (sclient->listener !=
+							    ldevs->listener)
+								fail = 1;
+							break;
+						}
+					}
+					/*
+					 * check for different
+					 * subscriber names
+					 */
+					TAILQ_FOREACH(sclient,
+					    &sclients->clients, entry) {
+						if (fail)
+							break;
+						fail = 0;
+						if (strcmp(sclient->name,
+						    my_name) == 0 &&
+						    sclient->pfd != my_pfd) {
+							fail = 1;
+							break;
+						}
+					}
+					if (fail)
+						continue;
 					if (strcmp(ldevs->name, $3) == 0)
 						if (strcmp(ldevs->password, $5)
 						    == 0 && (ldevs->subscribers
-						    < ldevs->max_clients)) {
+							< ldevs->max_clients)) {
 							ldevs->subscribers++;
 							do_subscribe(my_pfd,
-							    ldevs->name,
-							    ldevs->fd,
-							    sclients);
+								ldevs->name,
+								ldevs->fd,
+								sclients);
 							continue;
 						}
 				}
@@ -169,7 +204,6 @@ subdevs		: DEVICE '{' STRING ',' STRING '}' optcomma {
 				 * yyerror("max subscription requests exceeded");
 				 * YYERROR;
 				 */
-
 			sub_reqs++;
 		}
 		;

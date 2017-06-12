@@ -149,8 +149,6 @@ test_client(struct pollfd *x_pfds, struct client_conf *cconf)
 void
 do_subscribe(int mypfd, char *name, int devfd, struct client_conf *cconf)
 {
-//currently allowing same client names. this needs to change! not sure if it's here or not.
-//do_subscribe called from parse.y
 	struct client_conf		*sclients;
 	struct client			*sclient;
 	char				*sname;
@@ -165,7 +163,8 @@ do_subscribe(int mypfd, char *name, int devfd, struct client_conf *cconf)
 			sclient->subscriptions_name[sclient->lastelement] =
 			    sname;
 			sclient->lastelement++;
-			log_info("client %s subscribed to %s", sclient->name, sname);
+			log_info("client %s subscribed to %s", sclient->name,
+			    sname);
 			break;
 		}
 	}

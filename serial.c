@@ -206,7 +206,8 @@ open_devices(struct s_conf *x_devs)
 		cs_device->location =		 devs->devicelocation;
 		cs_device->ipaddr =		 devs->ipaddr;
 		cs_device->cport =		 devs->cport;
-		cs_device->max_clients = 	 devs->max_clients;
+		cs_device->max_clients =	 devs->max_clients;
+		cs_device->connected =		 1;
 
 		strlcpy(cs_device->port, devs->port, sizeof(cs_device->port));
 		cs_device->bind_interface =	 devs->bind_interface;

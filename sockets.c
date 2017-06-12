@@ -85,10 +85,12 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 				fatalx("can't find listener");
 				return -1;
 			}
-		} else
+		} else {
 			listener =  c_socket->listener;
+			ldevs->listener = listener;
+		}
 
-		ldevs->listener = listener;
+		//ldevs->listener = listener;
 		TAILQ_INSERT_TAIL(&s_socks->s_sockets, c_socket, entry);
 	}
 	return 0;

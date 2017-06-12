@@ -50,6 +50,8 @@ int				 ph = -1, c_retry = 30;
 int				 j, c_nfds, nfds, pfdcnt, clients_start;
 struct imsgbuf			*ibuf_main;
 struct ctl_conns		 ctl_conns;
+extern char			 default_port[6];
+
 void
 bb_sighdlr(int sig)
 {
@@ -191,14 +193,13 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 	struct client			*sclient, *tmp_sclient;
 	struct client_conf		*sclients;
 	struct s_conf			*sdevs;
+	struct s_device			*ldevs;
 
-	int				 toclose, k;
+	int				 toclose;
 	sdevs =				 x_devices;
 	spfds =				 x_pfds;
 	toclose =			 spfds[i].fd;
 	sclients =			 cconf;
-
-	log_info("client %s closing", sclient->name);
 
 	TAILQ_FOREACH_SAFE(sclient, &sclients->clients, entry, tmp_sclient) {
 		tmp_sclient = TAILQ_NEXT(sclient, entry);
@@ -208,9 +209,10 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 			 * if x_devices == null, it's coming from test_client()
 			 * and no subscriptions have been attempted, so skip
 			 */
-			if (sdevs != '\0')
+			if (sdevs != '\0') {
 				clean_devs(sclient->subscriptions, sdevs);
-
+				log_info("client %s closing", sclient->name);
+			}
 			TAILQ_REMOVE(&sclients->clients, sclient, entry);
 			break;
 		}
@@ -222,49 +224,53 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 		spfds[j+1].fd;
 	}
 	nfds--;
-	if (i >= clients_start) {
-		close(toclose);
+	c_nfds = nfds;
+	close(toclose);
+	if (i >= clients_start)
 		log_info("client connection closed");
-	} else {
+	else {
 		/* 
-		 * could do reconnection here for ip_addr timeouts here. 
-		 * this would only be for those persistent connection that
-		 * actually did timeout ... see parse.y
-		 * 
-		 * ok, here is the prog note: add persistence to the configs
-		 * for ip_addr devices. for those which have a timeout period
-		 * persistence = 0 (default = 1)
-		 * add to devices struct
-		 * if 0, do not open fd in serial
-		 * do not add to the polled fd's
-		 * if received packet from client, open_client_socket, send
-		 * packet, then close socket
-		 * 
-		 * so, persistence will need to be sent to packet_handler
-		 * as well, so it knows to open new fd
-		 * 
-		 * clients will only ever be able to send to this kind of
-		 * device, as it's not polling for incoming
-		 * 
-		 * for incoming, devices would have to cwipstart to server ap
-		 * 
-		 * start timer, need to add a retry period to parse
+		 * probably need to thread a device connection tester,
+		 * so those persistent ip_addr connections that maybe
+		 * timeout can be reconnected
 		 */
 
 		/*
-		 * NEED TO CHECK ON toclose HERE
-		 * NEED TO SHUTDOWN PORT IF ONLY ONE
+		 * close port for device
 		 */
-
-		TAILQ_FOREACH(sclient, &sclients->clients, entry) {
-			for (k = 0; k < max_subscriptions; k++)
-			{
-				if (sclient->subscriptions[k] == toclose) {
-					sclient->subscriptions[k] = 0;
-					sclient->subscriptions_name[k] = "";
+		TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
+			if (toclose == ldevs->fd && strcmp(ldevs->port,
+			    default_port) != 0) {
+				for (j = 0; j < c_nfds; j++) {
+					if (spfds[j].fd == ldevs->listener) {
+						for(j = j; j < c_nfds; j++)
+						{
+							spfds[j].fd =
+							    spfds[j+1].fd;
+						}
+					}
+					break;
+				}
+				shutdown(ldevs->listener, 0);
+				close(ldevs->listener);
+				/* clean clients */
+				TAILQ_FOREACH_SAFE(sclient, &sclients->clients,
+				    entry, tmp_sclient) {
+					tmp_sclient =
+					    TAILQ_NEXT(sclient, entry);
+					if (sclient->listener ==
+					    ldevs->listener) {
+						clean_devs(
+						    sclient->subscriptions,
+						    sdevs);
+						log_info("client %s closing",
+						    sclient->name);
+						TAILQ_REMOVE(&sclients->clients,
+						    sclient, entry);
+						break;
+					}
 				}
 			}
-			
 		}
 		pfdcnt--;
 		clients_start--;
@@ -309,10 +315,12 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	/* load up fds */
 	TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry) {
 		pfds[pi].fd =		 lsocks->listener;
+		log_info("Sock: %d", pfds[pi].fd);
 		pfds[pi++].events =	 POLLIN;
 	}
 	TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
 		pfds[pi].fd =		 ldevs->fd;
+		log_info("Device: %d", pfds[pi].fd);
 		pfds[pi++].events =	 POLLIN;
 	}
 
@@ -357,7 +365,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 		/* start polling */
 		pollsocks = poll(pfds, nfds, -1);
 		if (pollsocks == -1)
-			fatal("poll() failed");
+			log_warn("poll() failed");
 
 		c_nfds = nfds;
 
@@ -372,29 +380,30 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 					break;
 				}
 			}
-
 			if (is_client == 1) {
 				do {
 					n_client = accept(lsocks->listener,
 								NULL, NULL);
 					if (n_client == -1)
 						if (errno != EWOULDBLOCK) {
-							fatal("failed");
+							log_warn("failed");
 							break;
 						}
 					if (nfds < pfdcnt) {
 						int opts =
 						    fcntl(n_client, F_GETFL);
 						if (opts < 0)
-							fatal("opts failed");
+							log_warn("opts failed");
 						opts |= O_NONBLOCK;
 						if (fcntl(n_client, F_SETFL,
 						    opts) < 0)
-							fatal("F_SETFL");
+							log_warn("F_SETFL");
 						pfds[nfds].fd = n_client;
 						pfds[nfds].events = POLLIN;
 						log_info("client accepted");
 						c_client = new_client(n_client);
+						c_client->listener =
+						    lsocks->listener;
 						TAILQ_INSERT_TAIL(
 						    &sclients->clients,
 						    c_client, entry);

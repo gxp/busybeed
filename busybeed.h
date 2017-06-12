@@ -85,6 +85,7 @@ struct device {
 	int			 swctrl;
 	char			*password;
 	char			*bind_interface;
+	int			 listener;
 	int			 persistent;
 };
 struct device			*currentdevice;
@@ -119,6 +120,7 @@ struct s_device {
 	char			*location;
 	char			*password;
 	char			*name;
+	int			 connected;
 };
 struct s_device			*cs_device;
 
@@ -160,6 +162,7 @@ struct client {
 	pthread_t		 me_thread;
 	int			 lastelement;
 	char			**subscriptions_name;
+	int			 listener;
 	int			 subscriptions[];
 };
 struct client			*c_client;

@@ -195,8 +195,8 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 	struct s_conf			*sdevs;
 	struct s_device			*ldevs;
 
-	int				 toclose, client_closed = 0;
-	int				 clean_client = -1, dev_stor = -1;
+	int				 toclose, subs, subcnt;
+	int				 client_closed = 0;
 	sdevs =				 x_devices;
 	spfds =				 x_pfds;
 	toclose =			 spfds[i].fd;
@@ -250,7 +250,6 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 						close(ldevs->listener);
 						ldevs->connected = 0;
 						ldevs->subscribers = 0;
-						dev_stor = ldevs->listener;
 						for(i = j; i < c_nfds; i++)
 						{
 							spfds[i].fd =
@@ -267,9 +266,10 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 
 		/* clean clients part 1 */
 		TAILQ_FOREACH(sclient, &sclients->clients, entry) {
-			if (sclient->listener == dev_stor) {
-				clean_client = sclient->pfd;
-				break;
+			for (subs = 0; subs < max_subscriptions; subs++) {
+				if (toclose == sclient->subscriptions[subs]) {
+					sclient->subscriptions[subs] = 0;
+				}
 			}
 		}
 	}
@@ -278,14 +278,21 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 		fatal("realloc");
 
 	/* clean clients part 2 */
-	if (clean_client != -1)
-		for (i = 0; i < c_nfds; i++) {
-			log_info("i: %d", i);
-			if (clean_client == spfds[i].fd) {
-				clean_pfds(sclients, spfds, i, sdevs);
-				break;
+	TAILQ_FOREACH(sclient, &sclients->clients, entry) {
+		subcnt = 0;
+		for (subs = 0; subs < max_subscriptions; subs++) {
+			if (sclient->subscriptions[subs] == 0) {
+				subcnt++;
 			}
 		}
+		if (subcnt == max_subscriptions) {
+			for (i = 0; i < c_nfds; i++) {
+				if (sclient->pfd == spfds[i].fd) {
+					clean_pfds(sclients, spfds, i, sdevs);
+				}
+			}
+		}
+	}
 }
 
 pid_t
@@ -407,8 +414,8 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 						pfds[nfds].events = POLLIN;
 						log_info("client accepted");
 						c_client = new_client(n_client);
-						c_client->listener =
-						    lsocks->listener;
+						c_client->port =
+						    lsocks->port;
 						TAILQ_INSERT_TAIL(
 						    &sclients->clients,
 						    c_client, entry);

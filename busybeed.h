@@ -161,8 +161,8 @@ struct client {
 	int			 subscribed;
 	pthread_t		 me_thread;
 	int			 lastelement;
+	char			*port;
 	char			**subscriptions_name;
-	int			 listener;
 	int			 subscriptions[];
 };
 struct client			*c_client;

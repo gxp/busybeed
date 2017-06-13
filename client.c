@@ -134,7 +134,7 @@ test_client(struct pollfd *x_pfds, struct client_conf *cconf)
 	me =				 pthread_self();
 
 	TAILQ_FOREACH(sclient, &sclients->clients, entry) {
-		if (sclient->subscribed != 1)
+		if (sclient->subscribed < 1)
 			for (i = 0; i < c_nfds; i++) {
 				if ((spfds[i].fd == sclient->pfd) &&
 				    (sclient->me_thread == me)) {
@@ -158,7 +158,7 @@ do_subscribe(int mypfd, char *name, int devfd, struct client_conf *cconf)
 
 	TAILQ_FOREACH(sclient, &sclients->clients, entry) {
 		if (sclient->pfd == mypfd) {
-			sclient->subscribed = 1;
+			sclient->subscribed++;
 			sclient->subscriptions[sclient->lastelement] = devfd;
 			sclient->subscriptions_name[sclient->lastelement] =
 			    sname;

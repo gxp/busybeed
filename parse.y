@@ -63,11 +63,11 @@ struct busybeed_conf		*conf;
 struct s_device			*ldevs;
 struct client_conf		*sclients;
 struct client			*sclient;
-int				 my_pfd, fail;
+int				 my_pfd, fail, subs;
 
 char				 default_port[6];
 char				*bind_interface = NULL;
-char				*my_name;
+char				*my_name, *not_my_name;
 
 extern int			 max_clients, max_subscriptions, verbose;
 extern int			 c_retry;
@@ -123,9 +123,13 @@ subopts		: {
 name		: NAME ',' STRING {
 			TAILQ_FOREACH(sclient, &sclients->clients, entry) {
 				if (sclient->pfd == my_pfd) {
-					sclient->name = $3;
-					my_name = $3;
-					sclient->lastelement = 0;
+					if (sclient->subscribed == 0) {
+						sclient->name = $3;
+						my_name = $3;
+						not_my_name = $3;
+					} else
+						my_name = sclient->name;
+						not_my_name = $3;
 					break;
 				}
 			}
@@ -137,74 +141,81 @@ subdevs2	: subdevs2 subdevs
 		| subdevs
 		;
 subdevs		: DEVICE '{' STRING ',' STRING '}' optcomma {
-			if (sub_reqs < max_subscriptions) {
-				TAILQ_FOREACH(sclient, &sclients->clients,
-					      entry) {
-					if (sclient->subscribed == 1)
-						/* client has 
-						 * already subscribed
-						 */
-						continue;
+			char		*devname, *devport;
+			int		 devfd;
+			TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
+				if (strcmp(ldevs->name, $3) == 0) {
+					devname = ldevs->name;
+					devfd = ldevs->fd;
+					devport = ldevs->port;
+					break;
 				}
-				TAILQ_FOREACH(ldevs, &s_devs->s_devices,
-					      entry) {
-					/* 
-					 * check subscribing
-					 * on correct listener
+			}
+			TAILQ_FOREACH(sclient, &sclients->clients, entry) {
+				fail = 0;
+				/*
+				 * check for against existing name
+				 */
+				if (strcmp(sclient->name, my_name) == 0 &&
+				    sclient->pfd != my_pfd) {
+					fail = 1;
+					break;
+				}
+				if (sclient->pfd == my_pfd) {
+					/*
+					 * check for subscriber existing name
 					 */
-					TAILQ_FOREACH(sclient,
-					    &sclients->clients, entry) {
-						fail = 0;
-						if (sclient->pfd == my_pfd) {
-							if (sclient->listener !=
-							    ldevs->listener)
-								fail = 1;
-							break;
-						}
+					if (strcmp(my_name, not_my_name) != 0) {
+						fail = 1;
+						break;
 					}
 					/*
-					 * check for different
-					 * subscriber names
+					 * check max subscriptions and
+					 * that we aren't already subscribed
 					 */
-					TAILQ_FOREACH(sclient,
-					    &sclients->clients, entry) {
-						if (fail)
-							break;
-						fail = 0;
-						if (strcmp(sclient->name,
-						    my_name) == 0 &&
-						    sclient->pfd != my_pfd) {
+					if (sclient->subscribed >= 
+					    max_subscriptions) {
+						fail = 1;
+						break;
+					}
+					for (subs = 0; subs < max_subscriptions;
+					    subs++) {
+						if (strcmp(devname, $3) == 0 &&
+						    devfd ==
+						    sclient->subscriptions[subs]
+						    ) {
 							fail = 1;
 							break;
 						}
 					}
-					if (fail)
+					/*
+					 * check we're working on the
+					 * right port
+					 */
+					if (strcmp(sclient->port, devport) != 0)
+					{
+						fail = 1;
+						break;
+					}
+					break;
+				} else
+					continue;
+			}
+			TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
+				if (fail)
+					continue;
+				if (strcmp(ldevs->name, $3) == 0)
+					if (strcmp(ldevs->password, $5)
+						== 0 && (ldevs->subscribers
+						< ldevs->max_clients)) {
+						ldevs->subscribers++;
+						do_subscribe(my_pfd,
+							ldevs->name,
+							ldevs->fd,
+							sclients);
 						continue;
-					if (strcmp(ldevs->name, $3) == 0)
-						if (strcmp(ldevs->password, $5)
-						    == 0 && (ldevs->subscribers
-							< ldevs->max_clients)) {
-							ldevs->subscribers++;
-							do_subscribe(my_pfd,
-								ldevs->name,
-								ldevs->fd,
-								sclients);
-							continue;
-						}
-				}
-			} else
-				log_warnx("max subscription requests exceeded");
-				/*
-				 * no need to kill a client entirely for 
-				 * trying to subscribe to more than max 
-				 * subscriptions, so just ignore the rest
-				 * 
-				 * keep this note in case i change my mind
-				 * 
-				 * yyerror("max subscription requests exceeded");
-				 * YYERROR;
-				 */
-			sub_reqs++;
+					}
+			}
 		}
 		;
 optcomma	: ',' optcomma

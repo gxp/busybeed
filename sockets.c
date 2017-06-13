@@ -191,7 +191,7 @@ open_client_socket(char *ip_addr, int xport)
 
 	if (connect(client_fd, (struct sockaddr *)&servaddr,
 		sizeof(servaddr)) == -1)
-		fatalx("can't connect ip: %s", sockaddr);
+		log_warn("can't connect ip: %s", sockaddr);
 
 	return client_fd;
 }

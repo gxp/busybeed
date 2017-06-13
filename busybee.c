@@ -195,7 +195,8 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 	struct s_conf			*sdevs;
 	struct s_device			*ldevs;
 
-	int				 toclose;
+	int				 toclose, client_closed = 0;
+	int				 clean_client = -1, dev_stor = -1;
 	sdevs =				 x_devices;
 	spfds =				 x_pfds;
 	toclose =			 spfds[i].fd;
@@ -214,6 +215,7 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 				log_info("client %s closing", sclient->name);
 			}
 			TAILQ_REMOVE(&sclients->clients, sclient, entry);
+			client_closed = 1;
 			break;
 		}
 	}
@@ -226,7 +228,8 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 	nfds--;
 	c_nfds = nfds;
 	close(toclose);
-	if (i >= clients_start)
+
+	if (client_closed)
 		log_info("client connection closed");
 	else {
 		/* 
@@ -236,49 +239,53 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 		 */
 
 		/*
-		 * close port for device
+		 * shutdown port for device
 		 */
 		TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
 			if (toclose == ldevs->fd && strcmp(ldevs->port,
 			    default_port) != 0) {
 				for (j = 0; j < c_nfds; j++) {
 					if (spfds[j].fd == ldevs->listener) {
-						for(j = j; j < c_nfds; j++)
+						shutdown(ldevs->listener, 2);
+						close(ldevs->listener);
+						ldevs->connected = 0;
+						ldevs->subscribers = 0;
+						dev_stor = ldevs->listener;
+						for(i = j; i < c_nfds; i++)
 						{
-							spfds[j].fd =
-							    spfds[j+1].fd;
+							spfds[i].fd =
+							    spfds[i+1].fd;
 						}
 					}
 					break;
-				}
-				shutdown(ldevs->listener, 0);
-				close(ldevs->listener);
-				/* clean clients */
-				TAILQ_FOREACH_SAFE(sclient, &sclients->clients,
-				    entry, tmp_sclient) {
-					tmp_sclient =
-					    TAILQ_NEXT(sclient, entry);
-					if (sclient->listener ==
-					    ldevs->listener) {
-						clean_devs(
-						    sclient->subscriptions,
-						    sdevs);
-						log_info("client %s closing",
-						    sclient->name);
-						TAILQ_REMOVE(&sclients->clients,
-						    sclient, entry);
-						break;
-					}
 				}
 			}
 		}
 		pfdcnt--;
 		clients_start--;
 		log_info("non-client connection closed");
-		spfds = realloc(spfds, (pfdcnt * sizeof(struct pollfd)));
-		if (spfds == '\0')
-			fatal("realloc");
+
+		/* clean clients part 1 */
+		TAILQ_FOREACH(sclient, &sclients->clients, entry) {
+			if (sclient->listener == dev_stor) {
+				clean_client = sclient->pfd;
+				break;
+			}
+		}
 	}
+	spfds = realloc(spfds, (pfdcnt * sizeof(struct pollfd)));
+	if (spfds == '\0')
+		fatal("realloc");
+
+	/* clean clients part 2 */
+	if (clean_client != -1)
+		for (i = 0; i < c_nfds; i++) {
+			log_info("i: %d", i);
+			if (clean_client == spfds[i].fd) {
+				clean_pfds(sclients, spfds, i, sdevs);
+				break;
+			}
+		}
 }
 
 pid_t
@@ -315,12 +322,10 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	/* load up fds */
 	TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry) {
 		pfds[pi].fd =		 lsocks->listener;
-		log_info("Sock: %d", pfds[pi].fd);
 		pfds[pi++].events =	 POLLIN;
 	}
 	TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
 		pfds[pi].fd =		 ldevs->fd;
-		log_info("Device: %d", pfds[pi].fd);
 		pfds[pi++].events =	 POLLIN;
 	}
 

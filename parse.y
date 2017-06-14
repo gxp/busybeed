@@ -154,7 +154,7 @@ subdevs		: DEVICE '{' STRING ',' STRING '}' optcomma {
 			TAILQ_FOREACH(sclient, &sclients->clients, entry) {
 				fail = 0;
 				/*
-				 * check for against existing name
+				 * check against existing name
 				 */
 				if (strcmp(sclient->name, my_name) == 0 &&
 				    sclient->pfd != my_pfd) {
@@ -802,10 +802,10 @@ parse_config(const char *filename, struct busybeed_conf *xconf)
 int
 parse_buffer(struct client_conf *cconf, u_char *xbuff, int pfd)
 {
-	my_pfd =			 pfd;
-	sclients =			 cconf;
+	my_pfd =		 pfd;
+	sclients =		 cconf;
 
-	int			 errors = 0;
+	int				 errors = 0;
 	if ((file = pushbuff(xbuff)) == NULL)
 		return (-1);
 

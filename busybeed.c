@@ -210,7 +210,7 @@ main(int argc, char *argv[])
 				quit = 1;*/
 		}
 
-		/* finally, check on our kid */
+		/* finally, check on our kid // need work on this */
 		if (sigchld) {
 			chld_chk = waitpid(chld_pid, &status, WNOHANG);
 			if (chld_chk != 0) {

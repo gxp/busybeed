@@ -359,6 +359,11 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 
 	close(pipe_prnt[0]);
 
+	// spawn device watcher thread
+	// not yet created
+	//     you're doing the function pointer thing for checking subscribers ... do it here to check devices
+	// https://stackoverflow.com/questions/587393/calling-a-callback-from-a-thread-using-function-pointers
+
 	if (pledge("stdio tty rpath wpath inet proc", NULL) == -1)
 		err(1, "pledge");
 

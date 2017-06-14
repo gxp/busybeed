@@ -85,7 +85,7 @@ void
 	cdata =				 data;
 	spfds =				 cdata->pfd;
 	c_pfd =				 cdata->c_pfd;
-	sclients =				 cdata->cconf;
+	sclients =			 cdata->cconf;
 	seconds =			 cdata->seconds;
 	t_fptr = 			 cdata->fptr;
 
@@ -100,7 +100,6 @@ void
 
 	(void) (*t_fptr)(spfds, sclients);
 	pthread_exit(NULL);
-	return NULL;
 }
 
 void

@@ -15,4 +15,44 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+#include <sys/queue.h>
+
+#include <errno.h>
+#include <pthread.h>
+#include <stdarg.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <unistd.h>
 #include "busybeed.h"
+
+void
+*devwd(void *data)
+{
+	struct devwd_timer_data		*wddata;
+	struct s_device			*ldevs;
+// 	struct s_socket			*lsocks;
+// 	struct pollfd			*pfds;
+	
+	wddata = data;
+	/*
+	 * needs
+	 * 
+	 TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry) {
+		 pfds[pi].fd =		 lsocks->listener;
+		 pfds[pi++].events =	 POLLIN;
+	 }
+
+	 */
+	while(*wddata->quit == 0) {
+		TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
+			if (ldevs->connected == 0) {
+				log_info("open_devices");
+				
+				break;
+			}
+		}
+		sleep(wddata->seconds);
+	}
+
+	pthread_exit(NULL);
+}

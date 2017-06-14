@@ -51,11 +51,21 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 	s_socks =			 x_socks;
 	char				*iface = NULL;
 	int				 sock_r, listener;
-	int				 fail = 0;
+	int				 fail = 0, cont = 0;
 
 	TAILQ_INIT(&s_socks->s_sockets);
 
 	TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
+		cont = 0;
+		TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry) {
+			if (strcmp(ldevs->port, lsocks->port) == 0) {
+				cont = 1;
+				break;
+			}
+		}
+
+		if (cont)
+			continue;
 		c_socket = new_socket(ldevs->port);
 
 		if (ldevs->bind_interface != '\0')

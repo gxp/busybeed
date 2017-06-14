@@ -46,11 +46,13 @@ void				 bb_sighdlr(int);
 
 static u_char			 buff[BUFFRSIZE];
 int				 max_clients = 1, max_subscriptions = 1;
-int				 ph = -1, c_retry = 30;
+int				 ph = -1;
 int				 j, c_nfds, nfds, pfdcnt, clients_start;
 struct imsgbuf			*ibuf_main;
 struct ctl_conns		 ctl_conns;
+extern int			 c_retry;
 extern char			 default_port[6];
+struct pollfd			*tmppfds;
 
 void
 bb_sighdlr(int sig)
@@ -195,7 +197,7 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 	struct s_conf			*sdevs;
 	struct s_device			*ldevs;
 
-	int				 toclose, subs, subcnt;
+	int				 toclose, subs, subcnt, spfdcnt;
 	int				 client_closed = 0;
 	sdevs =				 x_devices;
 	spfds =				 x_pfds;
@@ -219,25 +221,24 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 			break;
 		}
 	}
+	nfds--;
+	c_nfds = nfds;
+	close(toclose);
 
+	/* shift fds */
 	for(j = i; j < c_nfds; j++)
 	{
 		spfds[j].fd =
 		spfds[j+1].fd;
 	}
-	nfds--;
-	c_nfds = nfds;
-	close(toclose);
+	for(j = c_nfds; j < pfdcnt; j++)
+	{
+		spfds[j].fd = 0;
+	}
 
 	if (client_closed)
 		log_info("client connection closed");
 	else {
-		/* 
-		 * probably need to thread a device connection tester,
-		 * so those persistent ip_addr connections that maybe
-		 * timeout can be reconnected
-		 */
-
 		/*
 		 * shutdown port for device
 		 */
@@ -248,6 +249,9 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 					if (spfds[j].fd == ldevs->listener) {
 						shutdown(ldevs->listener, 2);
 						close(ldevs->listener);
+						nfds--;
+						c_nfds = nfds;
+						clients_start--;
 						ldevs->connected = 0;
 						ldevs->subscribers = 0;
 						for(i = j; i < c_nfds; i++)
@@ -260,35 +264,25 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 				}
 			}
 		}
-		pfdcnt--;
 		clients_start--;
 		log_info("non-client connection closed");
 
-		/* clean clients part 1 */
+		/* clean clients */
 		TAILQ_FOREACH(sclient, &sclients->clients, entry) {
+			subcnt = 0;
 			for (subs = 0; subs < max_subscriptions; subs++) {
 				if (toclose == sclient->subscriptions[subs]) {
 					sclient->subscriptions[subs] = 0;
 				}
+				if (sclient->subscriptions[subs] == 0)
+					subcnt++;
 			}
-		}
-	}
-	spfds = realloc(spfds, (pfdcnt * sizeof(struct pollfd)));
-	if (spfds == '\0')
-		fatal("realloc");
-
-	/* clean clients part 2 */
-	TAILQ_FOREACH(sclient, &sclients->clients, entry) {
-		subcnt = 0;
-		for (subs = 0; subs < max_subscriptions; subs++) {
-			if (sclient->subscriptions[subs] == 0) {
-				subcnt++;
-			}
-		}
-		if (subcnt == max_subscriptions) {
-			for (i = 0; i < c_nfds; i++) {
-				if (sclient->pfd == spfds[i].fd) {
-					clean_pfds(sclients, spfds, i, sdevs);
+			if (subcnt == max_subscriptions) {
+				for (i = clients_start; i < pfdcnt; i++) {
+					if (sclient->pfd == spfds[i].fd) {
+						clean_pfds(sclients, spfds, i,
+						    sdevs);
+					}
 				}
 			}
 		}
@@ -310,6 +304,8 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	struct sock_conf		*socks;
 	struct client_conf		*sclients;
 	struct client_timer_data	*cdata;
+	struct devwd_timer_data		*wddata;
+	pthread_t			 devwd_thread;
 
 	bconf =				 xconf;
 	sdevs =				 x_devices;
@@ -323,7 +319,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	clients_start =			 (sdevs->count + socks->count);
 	nfds =				 clients_start;
 	pfdcnt =			 (sdevs->count + socks->count +
-					  max_clients);
+					      max_clients);
 	pfds =				 malloc(pfdcnt*sizeof(struct pollfd));
 
 	/* load up fds */
@@ -360,7 +356,16 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	close(pipe_prnt[0]);
 
 	// spawn device watcher thread
-	
+	int wdcheck;
+	wddata->seconds = c_retry;
+	wddata->quit = &bb_quit;
+	wddata->s_devs = sdevs;
+	wddata->s_socks = socks;
+	//wddata->fptr = open_devices;
+	wdcheck = pthread_create(&devwd_thread, NULL, devwd, (void *) wddata);
+
+	if (wdcheck)
+		fatalx("wd thread creation failed");
 
 	if (pledge("stdio tty rpath wpath inet proc", NULL) == -1)
 		err(1, "pledge");

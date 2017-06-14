@@ -63,6 +63,9 @@ Set the maximum number of clients allowed to connect to each
 .Xr busybeed 8 device.
 .It Ic max subscriptions Ar number
 Set the maximum number of devices a client can subscribe to at a time.
+.It Ic connection retry Ar number
+Set the lost connection device watchdog interval. Default is 30
+seconds. Range is 1-600 seconds.
 .It Ic log verbose Ar number
 Turn on verbose logging. (This option is currently disabled.)
 .El

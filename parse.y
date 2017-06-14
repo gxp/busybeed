@@ -70,7 +70,7 @@ char				*bind_interface = NULL;
 char				*my_name, *not_my_name;
 
 extern int			 max_clients, max_subscriptions, verbose;
-extern int			 c_retry;
+int				 c_retry;
 const char			*parity[4] = {"none", "odd", "even", "space"};
 const int			 baudrates[18] = {50, 75, 110, 134, 150, 200,
 				     300, 600, 1200, 1800, 2400, 4800, 9600,
@@ -200,6 +200,16 @@ subdevs		: DEVICE '{' STRING ',' STRING '}' optcomma {
 					break;
 				} else
 					continue;
+/*
+* no need to kill a client entirely for 
+* trying to subscribe to more than max 
+* subscriptions, so just ignore the rest
+* 
+* keep this note in case i change my mind
+* 
+* yyerror("max subscription requests exceeded");
+* YYERROR;
+*/
 			}
 			TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
 				if (fail)
@@ -242,7 +252,7 @@ maxclientssub	: MAX CLIENTS NUMBER {
 		}
 		;
 devretry	: CONNECTION RETRY NUMBER {
-			if ($3 >= 30 && $3 <= 600)
+			if ($3 >= 1 && $3 <= 600)
 				c_retry = $3;
 			else
 				c_retry = DEFAULTRETRY;

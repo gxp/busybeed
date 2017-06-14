@@ -241,8 +241,8 @@ ctl_main(int argc, char *argv[])
 {
 	
 	struct sockaddr_un	 sa;
-	struct imsg		 imsg;
-	struct imsgbuf		*ibuf_ctl;
+// 	struct imsg		 imsg;
+// 	struct imsgbuf		*ibuf_ctl;
 	int			 fd;
 	char			*sockname;
 	

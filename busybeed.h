@@ -26,7 +26,7 @@
 
 #define PATH_CONF	"/etc/busybeed.conf"
 #define CTLSOCKET	"/var/run/busybeed.sock"
-#define BUFFRSIZE        1024
+#define BUFFRSIZE	 1024
 #define DEFAULTRETRY	 30
 
 enum blockmodes {
@@ -35,7 +35,7 @@ enum blockmodes {
 };
 
 extern char			*__progname;
-extern int			 max_clients, max_subscriptions, c_retry;
+extern int			 max_clients, max_subscriptions;
 
 /* prototypes */
 
@@ -102,7 +102,7 @@ int				 parse_config(const char *,
 /* serial.c */
 
 extern struct s_conf		*s_devs;
-extern int			 open_devices(struct s_conf *);
+
 
 struct s_device			*new_s_device(char *);
 
@@ -123,6 +123,8 @@ struct s_device {
 	int			 connected;
 };
 struct s_device			*cs_device;
+
+extern int			 open_devices(struct s_conf *);
 
 struct s_conf {
 	TAILQ_HEAD(s_devices, s_device)		 s_devices;
@@ -226,3 +228,17 @@ void				 session_socket_blockmode(int, enum blockmodes);
 int				 control_close(int);
 struct ctl_conn			*control_connbyfd(int);
 int				 control_dispatch_msg(struct pollfd *, u_int *);
+
+/* devwd.c */
+void				*devwd(void *data);
+
+struct devwd_timer_data {
+	int			 seconds;
+	volatile sig_atomic_t	*quit;
+	struct s_conf		*s_devs;
+	struct sock_conf	*s_socks;
+	struct s_device		*ldevs;
+	struct s_socket		*lsocks;
+	struct pollfd		*pfds;
+	int			 (*fptr)(void *data);
+};

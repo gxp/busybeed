@@ -143,6 +143,10 @@ max subscriptions number
 	Set the maximum number of devices a client can subscribe to at a
 	time.
 
+connection retry number
+	Set the lost connection device watchdog interval. Default is 30
+	seconds. Range is 1-600 seconds.
+
 log verbose number
 
 	Turn on verbose logging. (This option is currently disabled.)

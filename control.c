@@ -186,9 +186,9 @@ session_socket_blockmode(int fd, enum blockmodes bm)
 int
 control_dispatch_msg(struct pollfd *pfd, u_int *ctl_cnt)
 {
-	struct imsg		 imsg;
+// 	struct imsg		 imsg;
 	struct ctl_conn		*c;
-	int			 cnt;
+// 	int			 cnt;
 	ssize_t			 n;
 	
 	if ((c = control_connbyfd(pfd->fd)) == NULL) {

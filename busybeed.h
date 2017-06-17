@@ -124,7 +124,6 @@ struct s_device {
 };
 struct s_device			*cs_device;
 
-extern int			 open_devices(struct s_conf *);
 
 struct s_conf {
 	TAILQ_HEAD(s_devices, s_device)		 s_devices;
@@ -134,7 +133,7 @@ struct s_conf {
 /* sockets.c */
 extern struct sock_conf		*s_socks;
 extern int			 create_sockets(struct sock_conf *,
-				     struct s_conf *);
+				     struct s_conf *, char *);
 extern char			*get_ifaddrs(char *);
 
 struct s_socket			*new_socket(char *);
@@ -152,6 +151,8 @@ struct sock_conf {
 	int					 count;
 };
 
+extern int			 open_devices(struct s_conf *,
+					      struct s_device *, struct sock_conf *);
 int				 create_socket(char *, char *);
 int				 open_client_socket(char *, int);
 
@@ -240,5 +241,5 @@ struct devwd_timer_data {
 	struct s_device		*ldevs;
 	struct s_socket		*lsocks;
 	struct pollfd		*pfds;
-	int			 (*fptr)(void *data);
+	int			 (*fptr)(struct s_conf *, struct s_device *, struct sock_conf *);
 };

@@ -32,6 +32,7 @@
 #include <errno.h>
 #include <ifaddrs.h>
 #include <netdb.h>
+#include <poll.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
@@ -41,29 +42,52 @@
 #include "busybeed.h"
 
 struct sock_conf		*s_socks;
+extern struct pollfd		*pfds, *tmppfds;
+extern int			 nfds, c_nfds, pfdcnt, clients_start;
+extern char			 default_port[6];
 
 int
-create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
+create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs,
+    char *c_port)
 {
 	struct s_device			*ldevs;
 	struct s_socket			*lsocks;
+	char				*cport;
 	s_devs =			 x_devs;
 	s_socks =			 x_socks;
 	char				*iface = NULL;
-	int				 sock_r, listener;
-	int				 fail = 0, cont = 0;
+	int				 sock_r, listener, i;
+	int				 fail = 0, cont = 0, mult_d = 1,
+					     defp = 0;
 
-	TAILQ_INIT(&s_socks->s_sockets);
+	cport = c_port;
+	if (cport != '\0')
+		mult_d = 0;
+	
+	if (mult_d)
+		TAILQ_INIT(&s_socks->s_sockets);
 
 	TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
 		cont = 0;
-		TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry) {
-			if (strcmp(ldevs->port, lsocks->port) == 0) {
-				cont = 1;
-				break;
+		if (mult_d)
+			TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry) {
+				if (strcmp(ldevs->port, lsocks->port) == 0) {
+					cont = 1;
+					break;
+				}
 			}
-		}
+		else
+			TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry) {
+				if (strcmp(ldevs->port, cport) == 0 &&
+				    ldevs->connected == 0) {
+					if (strcmp(ldevs->port, default_port)
+					    == 0)
+						defp = 1;
+					break;
+				}
+			}
 
+			
 		if (cont)
 			continue;
 		c_socket = new_socket(ldevs->port);
@@ -77,8 +101,14 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 			    sizeof(c_socket->port)) == '\0')
 			fatalx("port copy failure");
 
-		sock_r = c_socket->listener = create_socket(ldevs->port, iface);
-		s_socks->count++;
+		if (defp == 0)
+			sock_r = c_socket->listener = create_socket(ldevs->port,
+			    iface);
+		else
+			sock_r = 0;
+
+		if (mult_d)
+			s_socks->count++;
 		if ( sock_r == -1)
 			return -1;
 		else if (sock_r == -2) {
@@ -86,7 +116,8 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 			TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry) {
 				if (strcmp(ldevs->port, lsocks->port) == 0) {
 					listener = lsocks->listener;
-					s_socks->count--;
+					if (mult_d)
+						s_socks->count--;
 					fail = 0;
 					break;
 				}
@@ -100,8 +131,44 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs)
 			ldevs->listener = listener;
 		}
 
-		//ldevs->listener = listener;
-		TAILQ_INSERT_TAIL(&s_socks->s_sockets, c_socket, entry);
+		if (mult_d)
+			TAILQ_INSERT_TAIL(&s_socks->s_sockets, c_socket, entry);
+		else {
+			/* add back to spfds */
+			int tots = 0;
+			
+			if (defp == 0) {
+				clients_start++;
+				pfdcnt++;
+				tots++;
+				nfds++;
+			}
+			nfds++;
+			clients_start++;
+			pfdcnt++;
+			tots++;
+			i = 0;
+			tmppfds = realloc(pfds, pfdcnt * sizeof(struct pollfd));
+			if (tmppfds == '\0')
+				fatal("realloc");
+		
+			c_nfds = nfds;
+			pfds = tmppfds;
+			for (i = pfdcnt-tots-1; i >= 0; i--) {
+				pfds[i+tots].fd = pfds[i].fd;
+				pfds[i+tots].events = pfds[i].events;
+				pfds[i+tots].revents = pfds[i].revents;
+			}
+			i = 0;
+			pfds[i].fd = ldevs->fd;
+			pfds[i++].events = POLLIN;
+			if (defp == 0) {
+				pfds[i].fd = listener;
+				pfds[i++].events = POLLIN;
+			}
+			log_info("device %s reconnected", ldevs->name);
+			break;
+		}
 	}
 	return 0;
 }

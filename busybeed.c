@@ -126,10 +126,10 @@ main(int argc, char *argv[])
 	if (parse_config(PATH_CONF, &lconf))
 		exit(1);
 
-	if (open_devices(&sdevs))
+	if (open_devices(&sdevs, NULL, NULL))
 		exit(1);
 
-	if (create_sockets(&socks, &sdevs))
+	if (create_sockets(&socks, &sdevs, NULL))
 		exit(1);
 
 	if (socketpair(AF_UNIX, SOCK_STREAM, PF_UNSPEC, pipe_chld) == -1)

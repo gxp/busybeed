@@ -28,31 +28,27 @@
 void
 *devwd(void *data)
 {
+	int (*t_fptr)(struct s_conf *, struct s_device *, struct sock_conf *);
+
 	struct devwd_timer_data		*wddata;
 	struct s_device			*ldevs;
-// 	struct s_socket			*lsocks;
-// 	struct pollfd			*pfds;
-	
-	wddata = data;
-	/*
-	 * needs
-	 * 
-	 TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry) {
-		 pfds[pi].fd =		 lsocks->listener;
-		 pfds[pi++].events =	 POLLIN;
-	 }
+	int				 od, connd = 0;
 
-	 */
+	wddata = data;
+	t_fptr = wddata->fptr;
+
 	while(*wddata->quit == 0) {
-		TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
+		sleep(wddata->seconds);
+		TAILQ_FOREACH(ldevs, &wddata->s_devs->s_devices, entry) {
 			if (ldevs->connected == 0) {
-				log_info("open_devices");
-				
-				break;
+				od = (int) (*t_fptr)(wddata->s_devs, ldevs,
+				    wddata->s_socks);
+				connd = 1;
+				continue;
 			}
 		}
-		sleep(wddata->seconds);
+		if (connd)
+			break;
 	}
-
 	pthread_exit(NULL);
 }

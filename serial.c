@@ -31,20 +31,35 @@
 struct s_conf			*s_devs;
 
 int
-open_devices(struct s_conf *x_devs)
+open_devices(struct s_conf *x_devs, struct s_device *x_dev,
+    struct sock_conf *socks)
 {
 	int				 fd;
-	int				 baudrate = 0;
-	int				 stop = 0;
+	int				 baudrate = 0, stop = 0, mult_d = 1;
 
 	struct termios			 s_opts;
+	struct s_device			 *ldev;
 
+	ldev = x_dev;
 	s_devs = x_devs;
-	TAILQ_INIT(&s_devs->s_devices);
+	if (ldev != '\0')
+		mult_d = 0;
+
+	if (mult_d)
+		TAILQ_INIT(&s_devs->s_devices);
 
 	struct device			*devs;
+
 	TAILQ_FOREACH(devs, &conf->devices, entry) {
-		cs_device = new_s_device(devs->name);
+
+		if (mult_d)
+			cs_device = new_s_device(devs->name);
+		else {
+			if (strcmp(ldev->name, devs->name) != 0)
+				continue;
+			log_info("re-open device: %s", ldev->name);
+			cs_device = ldev;
+		}
 		if (devs->devicelocation != '\0') {
 			fd = open(devs->devicelocation, O_RDWR | O_NOCTTY |
 			    O_NDELAY);
@@ -198,7 +213,6 @@ open_devices(struct s_conf *x_devs)
 				/* non persistent device */
 				cs_device->fd = -1;
 		}
-
 		if (cs_device->fd == '\0')
 			fatalx("something went wrong setting fd");
 
@@ -207,12 +221,20 @@ open_devices(struct s_conf *x_devs)
 		cs_device->ipaddr =		 devs->ipaddr;
 		cs_device->cport =		 devs->cport;
 		cs_device->max_clients =	 devs->max_clients;
-		cs_device->connected =		 1;
+		if (mult_d)
+			cs_device->connected =		 1;
 
 		strlcpy(cs_device->port, devs->port, sizeof(cs_device->port));
 		cs_device->bind_interface =	 devs->bind_interface;
-		s_devs->count++;
-		TAILQ_INSERT_TAIL(&s_devs->s_devices, cs_device, entry);
+		
+		if (mult_d) {
+			s_devs->count++;
+			TAILQ_INSERT_TAIL(&s_devs->s_devices, cs_device, entry);
+		} else {
+			/* create sockets */
+			if (create_sockets(socks, s_devs, cs_device->port))
+				exit(1);
+		}
 	}
 	return 0;
 }

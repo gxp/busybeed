@@ -65,7 +65,7 @@ Set the maximum number of clients allowed to connect to each
 Set the maximum number of devices a client can subscribe to at a time.
 .It Ic connection retry Ar number
 Set the lost connection device watchdog interval. Default is 30
-seconds. Range is 1-600 seconds.
+seconds. Range is 30-600 seconds.
 .It Ic log verbose Ar number
 Turn on verbose logging. (This option is currently disabled.)
 .El
@@ -125,8 +125,8 @@ connection to serial interface. These are any valid /dev devices, for example
 Set the maximum clients allowed to connect to a device
 .Ar location
 or
-.Ar ipaddr ,
-which supersedes the global max client value.
+.Ar ipaddr .
+The global max client value supersedes the sum of all device max clients.
 .It Ic parity Ar string
 Set the parity for a serial device
 .Ar location .

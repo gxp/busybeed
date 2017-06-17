@@ -252,7 +252,7 @@ maxclientssub	: MAX CLIENTS NUMBER {
 		}
 		;
 devretry	: CONNECTION RETRY NUMBER {
-			if ($3 >= 1 && $3 <= 600)
+			if ($3 >= DEFAULTRETRY && $3 <= 600)
 				c_retry = $3;
 			else
 				c_retry = DEFAULTRETRY;

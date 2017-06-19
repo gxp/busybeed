@@ -1,4 +1,4 @@
-/* $OpenBSD: client.c v.1.00 2016/11/20 14:59:17 baseprime Exp $ */
+/* $OpenBSD: client.c v.1.01 2016/11/20 14:59:17 baseprime Exp $ */
 /*
  * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.net>
  *
@@ -180,8 +180,9 @@ new_client(int pfd)
 	if ((client->pfd = pfd) < 1)
 		fatalx("no client pfd");
 
-	client->subscriptions_name = (char **)malloc(max_subscriptions *
-	    sizeof(char *));
+	if( (client->subscriptions_name = (char **)malloc(max_subscriptions *
+	    sizeof(char *))) == NULL)
+		fatalx("no client malloc");
 
 	return (client);
 };

@@ -1,4 +1,4 @@
-/*	$OpenBSD: control.c,v 1.0 2016/12/06 17:12:22 baseprime Exp $ */
+/*	$OpenBSD: control.c,v 1.01 2016/12/06 17:12:22 baseprime Exp $ */
 
 /*
  * Copyright (c) 2003, 2004 Henning Brauer <henning@openbsd.org>

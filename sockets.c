@@ -1,4 +1,4 @@
-/* $OpenBSD: sockets.c v.1.00 2016/11/20 14:59:17 baseprime Exp $ */
+/* $OpenBSD: sockets.c v.1.01 2016/11/20 14:59:17 baseprime Exp $ */
 /*
  * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.net>
  *
@@ -148,16 +148,15 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs,
 			pfdcnt++;
 			tots++;
 			i = 0;
-			tmppfds = realloc(pfds, pfdcnt * sizeof(struct pollfd));
-			if (tmppfds == '\0')
+			if((tmppfds = realloc(pfds, pfdcnt *
+			    sizeof(struct pollfd))) == NULL)
 				fatal("realloc");
 		
 			c_nfds = nfds;
 			pfds = tmppfds;
+
 			for (i = pfdcnt-tots-1; i >= 0; i--) {
 				pfds[i+tots].fd = pfds[i].fd;
-				pfds[i+tots].events = pfds[i].events;
-				pfds[i+tots].revents = pfds[i].revents;
 			}
 			i = 0;
 			pfds[i].fd = ldevs->fd;

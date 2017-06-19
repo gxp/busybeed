@@ -1,4 +1,4 @@
-/* $OpenBSD: busybee.c v.1.00 2016/11/29 17:42:00 baseprime Exp $ */
+/* $OpenBSD: busybee.c v.1.01 2016/11/29 17:42:00 baseprime Exp $ */
 /*
  * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.net>
  *
@@ -38,8 +38,6 @@
 #include <unistd.h>
 
 #include "busybeed.h"
-
-#define SUBTIME			 5
 
 volatile sig_atomic_t		 bb_quit = 0;
 void				 bb_sighdlr(int);
@@ -213,7 +211,7 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 			 * if x_devices == null, it's coming from test_client()
 			 * and no subscriptions have been attempted, so skip
 			 */
-			if (sdevs != '\0') {
+			if (sdevs != NULL) {
 				clean_devs(sclient->subscriptions, sdevs);
 				log_info("client %s closing", sclient->name);
 			}
@@ -311,9 +309,8 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 		}
 	}
 
-	tmppfds = realloc(pfds, pfdcnt * sizeof(struct pollfd));
-	if (tmppfds == '\0')
-		fatal("realloc");
+	if ((tmppfds = realloc(pfds, pfdcnt * sizeof(tmppfds))) == NULL)
+		fatal("realloc tmppfds");
 	pfds = tmppfds;
 }
 
@@ -348,8 +345,11 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	nfds =				 clients_start;
 	pfdcnt =			 (sdevs->count + socks->count +
 					      max_clients);
-	pfds =				 calloc(pfdcnt, sizeof(struct pollfd));
-	tmppfds =			 calloc(pfdcnt, sizeof(struct pollfd));
+
+	if ((pfds = calloc(pfdcnt, sizeof(struct pollfd))) == NULL)
+		fatal("calloc pfds");
+	if ((tmppfds = calloc(pfdcnt, sizeof(struct pollfd))) == NULL)
+		fatal("calloc tmppfds");
 
 	/* load up fds */
 	TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry) {
@@ -364,7 +364,9 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 		pfds[i].fd = 0;
 
 	memset(sclients, 0, sizeof(sclients));
-	cdata = (struct client_timer_data *) calloc(1, sizeof(*cdata));
+	if((cdata = (struct client_timer_data *) calloc(1, sizeof(*cdata))) ==
+	    NULL)
+		fatal("calloc cdata");
 	TAILQ_INIT(&sclients->clients);
 
 	switch (pid = fork()) {
@@ -409,9 +411,6 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	
 	while (bb_quit == 0) {
 		/* start polling */
-		for (i = 0; i < pfdcnt; i++)
-			log_info("pfds[i].fd=%d", pfds[i].fd);
-		log_info("--");
 		pollsocks = poll(pfds, nfds, -1);
 		if (pollsocks == -1)
 			log_warn("poll() failed");

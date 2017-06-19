@@ -1,4 +1,4 @@
-/* $OpenBSD: busybeed.c v.1.00 2016/11/20 14:59:17 baseprime Exp $ */
+/* $OpenBSD: busybeed.c v.1.01 2016/11/20 14:59:17 baseprime Exp $ */
 /*
  * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.net>
  *
@@ -174,7 +174,8 @@ main(int argc, char *argv[])
 	}
 
 	while (quit == 0) {
-		pfd = malloc(sizeof(struct pollfd));
+		if ((pfd = malloc(sizeof(struct pollfd))) == NULL)
+			fatal("malloc pfd");
 		pfd[0].fd = ibuf->fd;
 		pfd[0].events = POLLIN;
 

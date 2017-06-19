@@ -1,4 +1,4 @@
-/* $OpenBSD: busybeed.h v.1.00 2016/11/20 14:59:17 baseprime Exp $ */
+/* $OpenBSD: busybeed.h v.1.01 2016/11/20 14:59:17 baseprime Exp $ */
 /*
  * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.net>
  *
@@ -195,6 +195,7 @@ void				 do_subscribe(int, char *, int,
 				     struct client_conf *);
 
 /* busybee.c */
+#define SUBTIME			 5
 void				 clean_devs(int[], struct s_conf *);
 void				 clean_pfds(struct client_conf *,
 				     struct pollfd *, int, struct s_conf *);

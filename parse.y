@@ -1,4 +1,4 @@
-/* $OpenBSD: parse.y v.1.00 2016/11/20 14:59:17 baseprime Exp $ */
+/* $OpenBSD: parse.y v.1.01 2016/11/20 14:59:17 baseprime Exp $ */
 /*
  * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.net>
  *

@@ -1,4 +1,4 @@
-/* $OpenBSD: busybee.c v.1.00 2016/11/29 17:42:00 baseprime Exp $ */
+/* $OpenBSD: busybee.c v.1.01 2016/11/29 17:42:00 baseprime Exp $ */
 /*
  * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.net>
  *
@@ -39,17 +39,20 @@
 
 #include "busybeed.h"
 
-#define SUBTIME			 5
-
 volatile sig_atomic_t		 bb_quit = 0;
 void				 bb_sighdlr(int);
 
 static u_char			 buff[BUFFRSIZE];
 int				 max_clients = 1, max_subscriptions = 1;
-int				 ph = -1, c_retry = 30;
-int				 j, c_nfds, nfds, pfdcnt, clients_start;
+int				 ph = -1;
+int				 j, c_nfds, nfds, pfdcnt, clients_start,
+				     wdcheck;
 struct imsgbuf			*ibuf_main;
 struct ctl_conns		 ctl_conns;
+extern int			 c_retry;
+extern char			 default_port[6];
+struct pollfd			*pfds, *tmppfds;
+
 void
 bb_sighdlr(int sig)
 {
@@ -191,8 +194,10 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 	struct client			*sclient, *tmp_sclient;
 	struct client_conf		*sclients;
 	struct s_conf			*sdevs;
+	struct s_device			*ldevs;
 
-	int				 toclose, k;
+	int				 toclose, subs, subcnt;
+	int				 client_closed = 0;
 	sdevs =				 x_devices;
 	spfds =				 x_pfds;
 	toclose =			 spfds[i].fd;
@@ -206,71 +211,107 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 			 * if x_devices == null, it's coming from test_client()
 			 * and no subscriptions have been attempted, so skip
 			 */
-			if (sdevs != '\0')
+			if (sdevs != NULL) {
 				clean_devs(sclient->subscriptions, sdevs);
-
+				log_info("client %s closing", sclient->name);
+			}
 			TAILQ_REMOVE(&sclients->clients, sclient, entry);
+			client_closed = 1;
 			break;
 		}
 	}
-
-	for(j = i; j < c_nfds; j++)
-	{
-		spfds[j].fd =
-		spfds[j+1].fd;
-	}
 	nfds--;
-	if (i >= clients_start) {
-		close(toclose);
+	c_nfds = nfds;
+	close(toclose);
+
+	/* shift fds */
+	for (j = i; j < c_nfds; j++) {
+		spfds[j].fd = spfds[j+1].fd;
+		spfds[j].events = spfds[j+1].events;
+		spfds[j].revents = spfds[j+1].revents;
+	}
+	for (j = c_nfds; j < pfdcnt; j++) {
+		spfds[j].fd = 0;
+	}
+
+	if (client_closed)
 		log_info("client connection closed");
-	} else {
-		/* 
-		 * could do reconnection here for ip_addr timeouts here. 
-		 * this would only be for those persistent connection that
-		 * actually did timeout ... see parse.y
-		 * 
-		 * ok, here is the prog note: add persistence to the configs
-		 * for ip_addr devices. for those which have a timeout period
-		 * persistence = 0 (default = 1)
-		 * add to devices struct
-		 * if 0, do not open fd in serial
-		 * do not add to the polled fd's
-		 * if received packet from client, open_client_socket, send
-		 * packet, then close socket
-		 * 
-		 * so, persistence will need to be sent to packet_handler
-		 * as well, so it knows to open new fd
-		 * 
-		 * clients will only ever be able to send to this kind of
-		 * device, as it's not polling for incoming
-		 * 
-		 * for incoming, devices would have to cwipstart to server ap
-		 * 
-		 * start timer, need to add a retry period to parse
-		 */
-
+	else {
 		/*
-		 * NEED TO CHECK ON toclose HERE
-		 * NEED TO SHUTDOWN PORT IF ONLY ONE
+		 * shutdown port for device
 		 */
-
-		TAILQ_FOREACH(sclient, &sclients->clients, entry) {
-			for (k = 0; k < max_subscriptions; k++)
-			{
-				if (sclient->subscriptions[k] == toclose) {
-					sclient->subscriptions[k] = 0;
-					sclient->subscriptions_name[k] = "";
+		char *tmp_port;
+		int really_close = 1;
+		TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
+			if (toclose == ldevs->fd) {
+				tmp_port = ldevs->port;
+				ldevs->connected = 0;
+				break;
+			}
+		}
+		TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
+			if (toclose != ldevs->fd && strcmp(ldevs->port,
+				tmp_port) == 0) {
+				really_close = 0;
+				break;
+			}
+		}
+		TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
+			if (toclose == ldevs->fd && strcmp(ldevs->port,
+			    default_port) != 0 && really_close) {
+				for (j = 0; j < c_nfds; j++) {
+					if (spfds[j].fd == ldevs->listener) {
+						shutdown(ldevs->listener, 2);
+						close(ldevs->listener);
+						nfds--;
+						c_nfds = nfds;
+						pfdcnt--;
+						clients_start--;
+						ldevs->subscribers = 0;
+						for (i = j; i < c_nfds; i++) {
+							spfds[i].fd =
+							    spfds[i+1].fd;
+							spfds[i].events =
+							    spfds[i+1].events;
+							spfds[i].revents =
+							    spfds[i+1].revents;
+						}
+						for (j = i; j < pfdcnt; j++) {
+							spfds[j].fd = 0;
+						}
+					}
+					break;
 				}
 			}
-			
 		}
 		pfdcnt--;
 		clients_start--;
 		log_info("non-client connection closed");
-		spfds = realloc(spfds, (pfdcnt * sizeof(struct pollfd)));
-		if (spfds == '\0')
-			fatal("realloc");
+
+		/* clean clients */
+		TAILQ_FOREACH(sclient, &sclients->clients, entry) {
+			subcnt = 0;
+			for (subs = 0; subs < max_subscriptions; subs++) {
+				if (toclose == sclient->subscriptions[subs]) {
+					sclient->subscriptions[subs] = 0;
+				}
+				if (sclient->subscriptions[subs] == 0)
+					subcnt++;
+			}
+			if (subcnt == max_subscriptions) {
+				for (i = clients_start; i < pfdcnt; i++) {
+					if (sclient->pfd == spfds[i].fd) {
+						clean_pfds(sclients, spfds, i,
+						    sdevs);
+					}
+				}
+			}
+		}
 	}
+
+	if ((tmppfds = realloc(pfds, pfdcnt * sizeof(tmppfds))) == NULL)
+		fatal("realloc tmppfds");
+	pfds = tmppfds;
 }
 
 pid_t
@@ -282,12 +323,14 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 
 	struct s_device			*ldevs;
 	struct s_socket			*lsocks;
-	struct pollfd			*pfds;
+
 	struct busybeed_conf	 	*bconf;
 	struct s_conf			*sdevs;
 	struct sock_conf		*socks;
 	struct client_conf		*sclients;
 	struct client_timer_data	*cdata;
+	struct devwd_timer_data		*wddata;
+	pthread_t			 devwd_thread;
 
 	bconf =				 xconf;
 	sdevs =				 x_devices;
@@ -301,8 +344,12 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	clients_start =			 (sdevs->count + socks->count);
 	nfds =				 clients_start;
 	pfdcnt =			 (sdevs->count + socks->count +
-					  max_clients);
-	pfds =				 malloc(pfdcnt*sizeof(struct pollfd));
+					      max_clients);
+
+	if ((pfds = calloc(pfdcnt, sizeof(struct pollfd))) == NULL)
+		fatal("calloc pfds");
+	if ((tmppfds = calloc(pfdcnt, sizeof(struct pollfd))) == NULL)
+		fatal("calloc tmppfds");
 
 	/* load up fds */
 	TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry) {
@@ -313,9 +360,13 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 		pfds[pi].fd =		 ldevs->fd;
 		pfds[pi++].events =	 POLLIN;
 	}
+	for (i = pi; i < pfdcnt; i++)
+		pfds[i].fd = 0;
 
 	memset(sclients, 0, sizeof(sclients));
-	cdata = (struct client_timer_data *) calloc(1, sizeof(*cdata));
+	if((cdata = (struct client_timer_data *) calloc(1, sizeof(*cdata))) ==
+	    NULL)
+		fatal("calloc cdata");
 	TAILQ_INIT(&sclients->clients);
 
 	switch (pid = fork()) {
@@ -337,6 +388,13 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 
 	close(pipe_prnt[0]);
 
+	// setup device watcher thread
+	wddata->seconds = c_retry;
+	wddata->quit = &bb_quit;
+	wddata->s_devs = sdevs;
+	wddata->s_socks = socks;
+	wddata->fptr = open_devices;
+
 	if (pledge("stdio tty rpath wpath inet proc", NULL) == -1)
 		err(1, "pledge");
 
@@ -355,10 +413,8 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 		/* start polling */
 		pollsocks = poll(pfds, nfds, -1);
 		if (pollsocks == -1)
-			fatal("poll() failed");
-
+			log_warn("poll() failed");
 		c_nfds = nfds;
-
 		for (i = 0; i < c_nfds; i++) {
 			if (pfds[i].revents == 0)
 				continue;
@@ -370,29 +426,31 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 					break;
 				}
 			}
-
 			if (is_client == 1) {
 				do {
 					n_client = accept(lsocks->listener,
 								NULL, NULL);
 					if (n_client == -1)
 						if (errno != EWOULDBLOCK) {
-							fatal("failed");
+							log_warn("failed");
+							bb_quit = 1;
 							break;
 						}
 					if (nfds < pfdcnt) {
 						int opts =
 						    fcntl(n_client, F_GETFL);
 						if (opts < 0)
-							fatal("opts failed");
+							log_warn("opts failed");
 						opts |= O_NONBLOCK;
 						if (fcntl(n_client, F_SETFL,
 						    opts) < 0)
-							fatal("F_SETFL");
+							log_warn("F_SETFL");
 						pfds[nfds].fd = n_client;
 						pfds[nfds].events = POLLIN;
 						log_info("client accepted");
 						c_client = new_client(n_client);
+						c_client->port =
+						    lsocks->port;
 						TAILQ_INSERT_TAIL(
 						    &sclients->clients,
 						    c_client, entry);
@@ -421,12 +479,22 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 							log_warn("recv() "	
 							    "failed");
 						if (errno == EBADF)
-							fatalx("error");
+							log_warn("error");
 						break;
 					}
 					if (rcv == 0) {
+						if (i < clients_start)
+							wdcheck =
+							    pthread_create(
+								&devwd_thread,
+								NULL, devwd,
+								(void *)
+								wddata);
 						clean_pfds(sclients, pfds, i,
 						    sdevs);
+						if (wdcheck)
+							fatalx("wd thread"
+							    "creation failed");
 						break;
 					}
 
@@ -446,5 +514,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 		if (pfds[i].fd >= 0)
 			close(pfds[i].fd);
 	}
+	free(tmppfds);
+	free(pfds);
 	_exit(0);
 }

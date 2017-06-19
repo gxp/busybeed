@@ -1,4 +1,4 @@
-/* $OpenBSD: busybeed.c v.1.00 2016/11/20 14:59:17 baseprime Exp $ */
+/* $OpenBSD: busybeed.c v.1.01 2016/11/20 14:59:17 baseprime Exp $ */
 /*
  * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.net>
  *
@@ -126,10 +126,10 @@ main(int argc, char *argv[])
 	if (parse_config(PATH_CONF, &lconf))
 		exit(1);
 
-	if (open_devices(&sdevs))
+	if (open_devices(&sdevs, NULL, NULL))
 		exit(1);
 
-	if (create_sockets(&socks, &sdevs))
+	if (create_sockets(&socks, &sdevs, NULL))
 		exit(1);
 
 	if (socketpair(AF_UNIX, SOCK_STREAM, PF_UNSPEC, pipe_chld) == -1)
@@ -174,7 +174,8 @@ main(int argc, char *argv[])
 	}
 
 	while (quit == 0) {
-		pfd = malloc(sizeof(struct pollfd));
+		if ((pfd = malloc(sizeof(struct pollfd))) == NULL)
+			fatal("malloc pfd");
 		pfd[0].fd = ibuf->fd;
 		pfd[0].events = POLLIN;
 
@@ -210,7 +211,7 @@ main(int argc, char *argv[])
 				quit = 1;*/
 		}
 
-		/* finally, check on our kid */
+		/* finally, check on our kid // need work on this */
 		if (sigchld) {
 			chld_chk = waitpid(chld_pid, &status, WNOHANG);
 			if (chld_chk != 0) {
@@ -241,8 +242,8 @@ ctl_main(int argc, char *argv[])
 {
 	
 	struct sockaddr_un	 sa;
-	struct imsg		 imsg;
-	struct imsgbuf		*ibuf_ctl;
+// 	struct imsg		 imsg;
+// 	struct imsgbuf		*ibuf_ctl;
 	int			 fd;
 	char			*sockname;
 	

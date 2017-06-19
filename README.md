@@ -135,13 +135,17 @@ bind interface string
 
 max clients number
 
-	Set the maximum number of clients allowed to connect to all
-	busybeed(8) sockets.
+	Set the maximum number of clients allowed to connect to each
+	busybeed(8) device.
 
 max subscriptions number
 
 	Set the maximum number of devices a client can subscribe to at a
 	time.
+
+connection retry number
+	Set the lost connection device watchdog interval. Default is 30
+	seconds. Range is 1-600 seconds.
 
 log verbose number
 
@@ -200,7 +204,7 @@ location string {...}
 max clients number
 
 	Set the maximum clients allowed to connect to a device location
-	or ipaddr, other than the global max client value.
+	or ipaddr, which supersedes the global max client value.
 
 parity string
 

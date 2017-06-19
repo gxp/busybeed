@@ -1,4 +1,4 @@
-/* $OpenBSD: busybeed.h v.1.00 2016/11/20 14:59:17 baseprime Exp $ */
+/* $OpenBSD: busybeed.h v.1.01 2016/11/20 14:59:17 baseprime Exp $ */
 /*
  * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.net>
  *
@@ -26,7 +26,7 @@
 
 #define PATH_CONF	"/etc/busybeed.conf"
 #define CTLSOCKET	"/var/run/busybeed.sock"
-#define BUFFRSIZE        1024
+#define BUFFRSIZE	 1024
 #define DEFAULTRETRY	 30
 
 enum blockmodes {
@@ -35,7 +35,7 @@ enum blockmodes {
 };
 
 extern char			*__progname;
-extern int			 max_clients, max_subscriptions, c_retry;
+extern int			 max_clients, max_subscriptions;
 
 /* prototypes */
 
@@ -85,6 +85,7 @@ struct device {
 	int			 swctrl;
 	char			*password;
 	char			*bind_interface;
+	int			 listener;
 	int			 persistent;
 };
 struct device			*currentdevice;
@@ -101,7 +102,7 @@ int				 parse_config(const char *,
 /* serial.c */
 
 extern struct s_conf		*s_devs;
-extern int			 open_devices(struct s_conf *);
+
 
 struct s_device			*new_s_device(char *);
 
@@ -119,8 +120,10 @@ struct s_device {
 	char			*location;
 	char			*password;
 	char			*name;
+	int			 connected;
 };
 struct s_device			*cs_device;
+
 
 struct s_conf {
 	TAILQ_HEAD(s_devices, s_device)		 s_devices;
@@ -130,7 +133,7 @@ struct s_conf {
 /* sockets.c */
 extern struct sock_conf		*s_socks;
 extern int			 create_sockets(struct sock_conf *,
-				     struct s_conf *);
+				     struct s_conf *, char *);
 extern char			*get_ifaddrs(char *);
 
 struct s_socket			*new_socket(char *);
@@ -148,6 +151,8 @@ struct sock_conf {
 	int					 count;
 };
 
+extern int			 open_devices(struct s_conf *,
+					      struct s_device *, struct sock_conf *);
 int				 create_socket(char *, char *);
 int				 open_client_socket(char *, int);
 
@@ -159,6 +164,7 @@ struct client {
 	int			 subscribed;
 	pthread_t		 me_thread;
 	int			 lastelement;
+	char			*port;
 	char			**subscriptions_name;
 	int			 subscriptions[];
 };
@@ -189,6 +195,7 @@ void				 do_subscribe(int, char *, int,
 				     struct client_conf *);
 
 /* busybee.c */
+#define SUBTIME			 5
 void				 clean_devs(int[], struct s_conf *);
 void				 clean_pfds(struct client_conf *,
 				     struct pollfd *, int, struct s_conf *);
@@ -223,3 +230,17 @@ void				 session_socket_blockmode(int, enum blockmodes);
 int				 control_close(int);
 struct ctl_conn			*control_connbyfd(int);
 int				 control_dispatch_msg(struct pollfd *, u_int *);
+
+/* devwd.c */
+void				*devwd(void *data);
+
+struct devwd_timer_data {
+	int			 seconds;
+	volatile sig_atomic_t	*quit;
+	struct s_conf		*s_devs;
+	struct sock_conf	*s_socks;
+	struct s_device		*ldevs;
+	struct s_socket		*lsocks;
+	struct pollfd		*pfds;
+	int			 (*fptr)(struct s_conf *, struct s_device *, struct sock_conf *);
+};

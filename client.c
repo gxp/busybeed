@@ -1,4 +1,4 @@
-/* $OpenBSD: client.c v.1.00 2016/11/20 14:59:17 baseprime Exp $ */
+/* $OpenBSD: client.c v.1.01 2016/11/20 14:59:17 baseprime Exp $ */
 /*
  * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.net>
  *
@@ -85,7 +85,7 @@ void
 	cdata =				 data;
 	spfds =				 cdata->pfd;
 	c_pfd =				 cdata->c_pfd;
-	sclients =				 cdata->cconf;
+	sclients =			 cdata->cconf;
 	seconds =			 cdata->seconds;
 	t_fptr = 			 cdata->fptr;
 
@@ -100,7 +100,6 @@ void
 
 	(void) (*t_fptr)(spfds, sclients);
 	pthread_exit(NULL);
-	return NULL;
 }
 
 void
@@ -134,7 +133,7 @@ test_client(struct pollfd *x_pfds, struct client_conf *cconf)
 	me =				 pthread_self();
 
 	TAILQ_FOREACH(sclient, &sclients->clients, entry) {
-		if (sclient->subscribed != 1)
+		if (sclient->subscribed < 1)
 			for (i = 0; i < c_nfds; i++) {
 				if ((spfds[i].fd == sclient->pfd) &&
 				    (sclient->me_thread == me)) {
@@ -158,11 +157,13 @@ do_subscribe(int mypfd, char *name, int devfd, struct client_conf *cconf)
 
 	TAILQ_FOREACH(sclient, &sclients->clients, entry) {
 		if (sclient->pfd == mypfd) {
-			sclient->subscribed = 1;
+			sclient->subscribed++;
 			sclient->subscriptions[sclient->lastelement] = devfd;
 			sclient->subscriptions_name[sclient->lastelement] =
 			    sname;
 			sclient->lastelement++;
+			log_info("client %s subscribed to %s", sclient->name,
+			    sname);
 			break;
 		}
 	}
@@ -179,8 +180,9 @@ new_client(int pfd)
 	if ((client->pfd = pfd) < 1)
 		fatalx("no client pfd");
 
-	client->subscriptions_name = (char **)malloc(max_subscriptions *
-	    sizeof(char *));
+	if( (client->subscriptions_name = (char **)malloc(max_subscriptions *
+	    sizeof(char *))) == NULL)
+		fatalx("no client malloc");
 
 	return (client);
 };

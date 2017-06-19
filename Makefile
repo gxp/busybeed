@@ -2,7 +2,7 @@
 
 PROG=		busybeed
 SRCS=		parse.y busybeed.c client.c log.c serial.c sockets.c
-SRCS+=		busybee.c control.c
+SRCS+=		busybee.c control.c devwd.c
 
 DEBUG=		-g -DDEBUG=3 -O0
 

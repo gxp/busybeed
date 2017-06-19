@@ -1,4 +1,4 @@
-/* $OpenBSD: parse.y v.1.00 2016/11/20 14:59:17 baseprime Exp $ */
+/* $OpenBSD: parse.y v.1.01 2016/11/20 14:59:17 baseprime Exp $ */
 /*
  * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.net>
  *
@@ -63,12 +63,14 @@ struct busybeed_conf		*conf;
 struct s_device			*ldevs;
 struct client_conf		*sclients;
 struct client			*sclient;
-int				 my_pfd;
+int				 my_pfd, fail, subs;
 
 char				 default_port[6];
 char				*bind_interface = NULL;
+char				*my_name, *not_my_name;
+
 extern int			 max_clients, max_subscriptions, verbose;
-extern int			 c_retry;
+int				 c_retry;
 const char			*parity[4] = {"none", "odd", "even", "space"};
 const int			 baudrates[18] = {50, 75, 110, 134, 150, 200,
 				     300, 600, 1200, 1800, 2400, 4800, 9600,
@@ -121,8 +123,13 @@ subopts		: {
 name		: NAME ',' STRING {
 			TAILQ_FOREACH(sclient, &sclients->clients, entry) {
 				if (sclient->pfd == my_pfd) {
-					sclient->name = $3;
-					sclient->lastelement = 0;
+					if (sclient->subscribed == 0) {
+						sclient->name = $3;
+						my_name = $3;
+						not_my_name = $3;
+					} else
+						my_name = sclient->name;
+						not_my_name = $3;
 					break;
 				}
 			}
@@ -134,43 +141,91 @@ subdevs2	: subdevs2 subdevs
 		| subdevs
 		;
 subdevs		: DEVICE '{' STRING ',' STRING '}' optcomma {
-			if (sub_reqs < max_subscriptions) {
-				TAILQ_FOREACH(sclient, &sclients->clients,
-					      entry) {
-					if (sclient->subscribed == 1)
-						/* client has 
-						 * already subscribed
-						 */
-						continue;
+			char		*devname, *devport;
+			int		 devfd;
+			TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
+				if (strcmp(ldevs->name, $3) == 0) {
+					devname = ldevs->name;
+					devfd = ldevs->fd;
+					devport = ldevs->port;
+					break;
 				}
-				TAILQ_FOREACH(ldevs, &s_devs->s_devices,
-					      entry) {
-					if (strcmp(ldevs->name, $3) == 0)
-						if (strcmp(ldevs->password, $5)
-						    == 0 && (ldevs->subscribers
-						    < ldevs->max_clients)) {
-							ldevs->subscribers++;
-							do_subscribe(my_pfd,
-							    ldevs->name,
-							    ldevs->fd,
-							    sclients);
-							continue;
-						}
-				}
-			} else
-				log_warnx("max subscription requests exceeded");
+			}
+			TAILQ_FOREACH(sclient, &sclients->clients, entry) {
+				fail = 0;
 				/*
-				 * no need to kill a client entirely for 
-				 * trying to subscribe to more than max 
-				 * subscriptions, so just ignore the rest
-				 * 
-				 * keep this note in case i change my mind
-				 * 
-				 * yyerror("max subscription requests exceeded");
-				 * YYERROR;
+				 * check against existing name
 				 */
-
-			sub_reqs++;
+				if (strcmp(sclient->name, my_name) == 0 &&
+				    sclient->pfd != my_pfd) {
+					fail = 1;
+					break;
+				}
+				if (sclient->pfd == my_pfd) {
+					/*
+					 * check for subscriber existing name
+					 */
+					if (strcmp(my_name, not_my_name) != 0) {
+						fail = 1;
+						break;
+					}
+					/*
+					 * check max subscriptions and
+					 * that we aren't already subscribed
+					 */
+					if (sclient->subscribed >= 
+					    max_subscriptions) {
+						fail = 1;
+						break;
+					}
+					for (subs = 0; subs < max_subscriptions;
+					    subs++) {
+						if (strcmp(devname, $3) == 0 &&
+						    devfd ==
+						    sclient->subscriptions[subs]
+						    ) {
+							fail = 1;
+							break;
+						}
+					}
+					/*
+					 * check we're working on the
+					 * right port
+					 */
+					if (strcmp(sclient->port, devport) != 0)
+					{
+						fail = 1;
+						break;
+					}
+					break;
+				} else
+					continue;
+/*
+* no need to kill a client entirely for 
+* trying to subscribe to more than max 
+* subscriptions, so just ignore the rest
+* 
+* keep this note in case i change my mind
+* 
+* yyerror("max subscription requests exceeded");
+* YYERROR;
+*/
+			}
+			TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
+				if (fail)
+					continue;
+				if (strcmp(ldevs->name, $3) == 0)
+					if (strcmp(ldevs->password, $5)
+						== 0 && (ldevs->subscribers
+						< ldevs->max_clients)) {
+						ldevs->subscribers++;
+						do_subscribe(my_pfd,
+							ldevs->name,
+							ldevs->fd,
+							sclients);
+						continue;
+					}
+			}
 		}
 		;
 optcomma	: ',' optcomma
@@ -197,7 +252,7 @@ maxclientssub	: MAX CLIENTS NUMBER {
 		}
 		;
 devretry	: CONNECTION RETRY NUMBER {
-			if ($3 >= 30 && $3 <= 600)
+			if ($3 >= DEFAULTRETRY && $3 <= 600)
 				c_retry = $3;
 			else
 				c_retry = DEFAULTRETRY;
@@ -757,10 +812,10 @@ parse_config(const char *filename, struct busybeed_conf *xconf)
 int
 parse_buffer(struct client_conf *cconf, u_char *xbuff, int pfd)
 {
-	my_pfd =			 pfd;
-	sclients =			 cconf;
+	my_pfd =		 pfd;
+	sclients =		 cconf;
 
-	int			 errors = 0;
+	int				 errors = 0;
 	if ((file = pushbuff(xbuff)) == NULL)
 		return (-1);
 

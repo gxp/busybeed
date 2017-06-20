@@ -411,10 +411,12 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	
 	while (bb_quit == 0) {
 		/* start polling */
-		pollsocks = poll(pfds, nfds, -1);
+		pollsocks = poll(pfds, nfds, 1000);
 		if (pollsocks == -1)
 			log_warn("poll() failed");
+
 		c_nfds = nfds;
+
 		for (i = 0; i < c_nfds; i++) {
 			if (pfds[i].revents == 0)
 				continue;
@@ -514,6 +516,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 		if (pfds[i].fd >= 0)
 			close(pfds[i].fd);
 	}
+	pthread_join(devwd_thread, NULL);
 	free(tmppfds);
 	free(pfds);
 	_exit(0);

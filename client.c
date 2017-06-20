@@ -28,7 +28,8 @@
 
 #include "busybeed.h"
 
-extern int				clients_start, c_nfds, nfds;
+extern int			 clients_start, c_nfds, nfds;
+pthread_t			 client_check;
 
 int
 client_subscribe(struct client_conf *cconf, int pfd, unsigned char *x_buff)
@@ -99,14 +100,13 @@ void
 	sleep(seconds);
 
 	(void) (*t_fptr)(spfds, sclients);
-	pthread_exit(NULL);
+	return NULL;
 }
 
 void
 start_client_timer(struct client_timer_data *cdata)
 {
 	struct client_timer_data	*cldata;
-	pthread_t			 client_check;
 	int				 tcheck;
 
 	cldata =			 cdata;
@@ -142,7 +142,6 @@ test_client(struct pollfd *x_pfds, struct client_conf *cconf)
 				}
 			}
 	}
-	pthread_exit(NULL);
 }
 
 void

@@ -147,6 +147,7 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs,
 			clients_start++;
 			pfdcnt++;
 			tots++;
+
 			i = 0;
 			if((tmppfds = realloc(pfds, pfdcnt *
 			    sizeof(struct pollfd))) == NULL)
@@ -157,10 +158,13 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs,
 
 			for (i = pfdcnt-tots-1; i >= 0; i--) {
 				pfds[i+tots].fd = pfds[i].fd;
+				pfds[i+tots].events = pfds[i].events;
+				pfds[i+tots].revents = pfds[i].revents;
 			}
 			i = 0;
 			pfds[i].fd = ldevs->fd;
-			pfds[i++].events = POLLIN;
+			pfds[i].events = POLLIN;
+			pfds[i++].revents = 0;
 			if (defp == 0) {
 				pfds[i].fd = listener;
 				pfds[i++].events = POLLIN;

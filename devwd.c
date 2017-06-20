@@ -50,5 +50,5 @@ void
 		if (connd)
 			break;
 	}
-	pthread_exit(NULL);
+	return NULL;
 }

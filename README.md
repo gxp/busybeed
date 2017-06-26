@@ -6,6 +6,32 @@ packets to swap between subscriber clients and devices. However,
 busybeed also provides password control over those connections,
 including client limits.
 
+### Installing
+
+busybeed installation
+
+```
+cd /usr/src/usr.sbin
+git clone https://github.com/spoollord/busybeed.git
+
+- development version
+git -b develop clone https://github.com/spoollord/busybeed.git
+
+cd busybeed
+make
+make -n install
+make install
+
+cp examples/etc/rc.d/busybeed /etc/rc.d/
+cp examples/etc/examples/busybeed.conf /etc/
+
+man busybeed.conf
+nano /etc/busybeed.conf
+
+rcctl enable busybeed
+rcctl start busybeed
+```
+
 ---------------------------------------------------
 Man Pages
 ---------------------------------------------------

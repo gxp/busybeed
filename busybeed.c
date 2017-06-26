@@ -220,6 +220,7 @@ main(int argc, char *argv[])
 			}
 			sigchld = 0;
 		}
+		//sleep(5);
 	}
 
 	if (chld_pid)

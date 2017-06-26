@@ -413,7 +413,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 		/* start polling */
 		pollsocks = poll(pfds, nfds, 1000);
 		if (pollsocks == -1)
-			log_warn("poll() failed");
+			fatal("poll() failed");
 
 		c_nfds = nfds;
 
@@ -519,5 +519,6 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	pthread_join(devwd_thread, NULL);
 	free(tmppfds);
 	free(pfds);
+log_info("leaving child");
 	_exit(0);
 }

@@ -230,7 +230,7 @@ location string {...}
 max clients number
 
 	Set the maximum clients allowed to connect to a device location
-	or ipaddr, which supersedes the global max client value.
+	or ipaddr, other than the global max client value.
 
 parity string
 

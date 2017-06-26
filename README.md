@@ -135,8 +135,8 @@ bind interface string
 
 max clients number
 
-	Set the maximum number of clients allowed to connect to each
-	busybeed(8) device.
+	Set the maximum number of clients allowed to connect to all
+	busybeed(8) socket.
 
 max subscriptions number
 

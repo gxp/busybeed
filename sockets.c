@@ -30,6 +30,7 @@
 #include <sys/types.h>
 
 #include <errno.h>
+#include <fcntl.h>
 #include <ifaddrs.h>
 #include <netdb.h>
 #include <poll.h>
@@ -109,7 +110,7 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs,
 
 		if (mult_d)
 			s_socks->count++;
-		if ( sock_r == -1)
+		if (sock_r == -1)
 			return -1;
 		else if (sock_r == -2) {
 			fail = 1;
@@ -169,7 +170,7 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs,
 				pfds[i].fd = listener;
 				pfds[i++].events = POLLIN;
 			}
-			log_info("device %s reconnected", ldevs->name);
+			log_info("device %s reconnection attempted", ldevs->name);
 			break;
 		}
 	}
@@ -241,6 +242,7 @@ int
 open_client_socket(char *ip_addr, int xport)
 {
 	int				 client_fd, cport;
+	long				 nb;
 	char				*sockaddr;
 	
 	struct hostent			*server;
@@ -269,10 +271,19 @@ open_client_socket(char *ip_addr, int xport)
 
 	inet_pton(AF_INET, sockaddr, &(servaddr.sin_addr));
 
+	/*
+	 * We set this to non_blocking at first. This stops timeouts from
+	 * occurring when we don't see an ip_addr. Device will look
+	 * connected. When recv() fails, will then attempt to connect to
+	 * ip_addr again. Set back to blocking after connect.
+	 */
+	nb |= O_NONBLOCK;
+	fcntl(client_fd, F_SETFL, nb);
 	if (connect(client_fd, (struct sockaddr *)&servaddr,
 		sizeof(servaddr)) == -1)
 		log_warn("can't connect ip: %s", sockaddr);
-
+	nb &= (~O_NONBLOCK);
+	fcntl(client_fd, F_SETFL, nb);
 	return client_fd;
 }
 

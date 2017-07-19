@@ -241,8 +241,7 @@ create_socket(char *port, char *b_iface)
 int
 open_client_socket(char *ip_addr, int xport)
 {
-	int				 client_fd, cport;
-	long				 nb;
+	int				 client_fd, cport, nb;
 	char				*sockaddr;
 	
 	struct hostent			*server;
@@ -282,7 +281,7 @@ open_client_socket(char *ip_addr, int xport)
 	if (connect(client_fd, (struct sockaddr *)&servaddr,
 		sizeof(servaddr)) == -1)
 		log_warn("can't connect ip: %s", sockaddr);
-	nb &= (~O_NONBLOCK);
+	nb &= ~O_NONBLOCK;
 	fcntl(client_fd, F_SETFL, nb);
 	return client_fd;
 }

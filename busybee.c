@@ -410,12 +410,11 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	imsg_init(ibuf_main, pipe_prnt[1]);
 	
 	while (bb_quit == 0) {
+		c_nfds = nfds;
 		/* start polling */
 		pollsocks = poll(pfds, nfds, 1000);
 		if (pollsocks == -1)
 			fatal("poll() failed");
-
-		c_nfds = nfds;
 
 		for (i = 0; i < c_nfds; i++) {
 			if (pfds[i].revents == 0)
@@ -424,8 +423,10 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 			/* only check sockets for client connections */
 			TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry) {
 				if (pfds[i].fd == lsocks->listener) {
-					is_client = 1;
-					break;
+					if (pfds[i].revents == POLLIN) {
+						is_client = 1;
+						break;
+					}
 				}
 			}
 			if (is_client == 1) {
@@ -519,6 +520,5 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	pthread_join(devwd_thread, NULL);
 	free(tmppfds);
 	free(pfds);
-log_info("leaving child");
 	_exit(0);
 }

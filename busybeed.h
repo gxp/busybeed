@@ -27,7 +27,7 @@
 #define PATH_CONF	"/etc/busybeed.conf"
 #define CTLSOCKET	"/var/run/busybeed.sock"
 #define BUFFRSIZE	 1024
-#define DEFAULTRETRY	 30
+#define DEFAULTRETRY	 10
 
 enum blockmodes {
 	BM_NORMAL,

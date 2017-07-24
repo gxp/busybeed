@@ -27,7 +27,7 @@
 #define PATH_CONF	"/etc/busybeed.conf"
 #define CTLSOCKET	"/var/run/busybeed.sock"
 #define BUFFRSIZE	 1024
-#define DEFAULTRETRY	 10
+#define DEFAULTRETRY	 30
 
 enum blockmodes {
 	BM_NORMAL,
@@ -77,6 +77,7 @@ struct device {
 	int			 cport;
 	char			*devicelocation;
 	char			*ipaddr;
+	char			*udp;
 	int			 baud;
 	int			 databits;
 	char			*parity;
@@ -100,6 +101,11 @@ int				 parse_config(const char *,
 				     struct busybeed_conf *);
 
 /* serial.c */
+enum sock {
+	TCP,
+	UDP,
+	FD
+} stype;
 
 extern struct s_conf		*s_devs;
 
@@ -117,10 +123,12 @@ struct s_device {
 	int			 persistent;
 	char			*bind_interface;
 	char			*ipaddr;
+	char			*udp;
 	char			*location;
 	char			*password;
 	char			*name;
 	int			 connected;
+	int			 type;
 };
 struct s_device			*cs_device;
 
@@ -131,6 +139,7 @@ struct s_conf {
 };
 
 /* sockets.c */
+
 extern struct sock_conf		*s_socks;
 extern int			 create_sockets(struct sock_conf *,
 				     struct s_conf *, char *);
@@ -152,8 +161,8 @@ struct sock_conf {
 };
 
 extern int			 open_devices(struct s_conf *,
-					      struct s_device *, struct sock_conf *);
-int				 create_socket(char *, char *);
+				     struct s_device *, struct sock_conf *);
+int				 create_socket(char *, char *, int);
 int				 open_client_socket(char *, int);
 
 /* client.c */

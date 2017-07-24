@@ -91,9 +91,9 @@ typedef struct {
 %}
 
 %token	BAUD DATA PARITY STOP HARDWARE SOFTWARE PASSWORD NAME RETRY PERSISTENT
-%token	LOG VERBOSE CONNECT DEVICE LISTEN LOCATION IPADDR DEVICES CONNECTION
-%token	DEFAULT PORT MAX CLIENTS SUBSCRIPTIONS BIND INTERFACE SUBSCRIBE
-%token	ERROR
+%token	LOG VERBOSE CONNECT DEVICE LISTEN LOCATION IPADDR UDP DEVICES CONNECTION
+%token	DEFAULT PORT MAX CLIENTS SUBSCRIPTIONS BIND INTERFACE SUBSCRIBE ERROR
+%token	RECEIVE
 %token	<v.string>		STRING
 %token	<v.number>		NUMBER
 
@@ -341,6 +341,9 @@ socopts1	: LISTEN STRING PORT NUMBER {
 		| CONNECT STRING PORT NUMBER {
 			currentdevice->cport = $4;
 		}
+		| RECEIVE STRING PORT NUMBER {
+			currentdevice->cport = $4;
+		}
 		| PASSWORD STRING {
 			currentdevice->password = $2;
 		}
@@ -359,11 +362,15 @@ deviceopts1	:  LOCATION STRING {
 		| IPADDR STRING {
 			currentdevice->ipaddr = $2;
 		} '{' optnl socopts2 '}'
+		| UDP STRING {
+			currentdevice->udp = $2;
+		} '{' optnl socopts2 '}'
 		;
 device		: DEVICE STRING	 {
 			currentdevice =				 new_device($2);
 			currentdevice->devicelocation =		 NULL;
 			currentdevice->ipaddr =			 NULL;
+			currentdevice->udp =			 NULL;
 			currentdevice->max_clients =		 max_clients;
 			strlcpy(currentdevice->port, default_port,
 				sizeof(currentdevice->port));
@@ -385,7 +392,17 @@ device		: DEVICE STRING	 {
 			}
 			if (currentdevice->ipaddr != '\0' &&
 				currentdevice->devicelocation != '\0') {
-				yyerror("too many device arguments");
+				yyerror("too many ipaddr device arguments");
+				YYERROR;
+			}
+			if (currentdevice->udp != '\0' &&
+				currentdevice->cport == -1) {
+				yyerror("udp receive port empty");
+				YYERROR;
+			}
+			if (currentdevice->udp != '\0' &&
+				currentdevice->devicelocation != '\0') {
+				yyerror("too many udp device arguments");
 				YYERROR;
 			}
 			if (*default_port == '\0') {
@@ -463,11 +480,13 @@ int lookup(char *s) {
 		{"password",		PASSWORD},
 		{"persistent",		PERSISTENT},
 		{"port",		PORT},
+		{"receive",		RECEIVE},
 		{"retry",		RETRY},
 		{"software",		SOFTWARE},
 		{"stop",		STOP},
 		{"subscribe",		SUBSCRIBE},
 		{"subscriptions",	SUBSCRIPTIONS},
+		{"udp",			UDP},
 		{"verbose",		VERBOSE}
 	};
 	const struct keywords	*p;

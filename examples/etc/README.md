@@ -1,2 +1,3 @@
 #busybeed
-busybeed rc.d file
+
+Configuration and rc.d examples.

@@ -111,11 +111,12 @@ Create a
 .Ar device
 connection to an IPV4 hostname or IP address. IPV6 is not implemented yet.
 .It Ic listen on port Ar number
-Set a local socket port for a device
-.Ar location
+Set a local socket port for a
+.Ar location , 
+.Ar udp , 
 or
 .Ar ipaddr
-other than the global default port.
+device, other than the global default port.
 .It Ic location Ar string Brq ...
 Create a
 .Ar device
@@ -149,12 +150,22 @@ will create a socket, send a client packet, and close that socket. Clients
 cannot receive on a non-persistent
 .Ar ipaddr
 device.
+.It Ic receive on port Ar number
+Set the
+.Ar udp
+port to listen on for a UDP packet. This setting is required for
+.Ar udp
+devices.
 .It Ic software Ar number
 Set to 1 to turn on software control for a serial device
 .Ar location .
 .It Ic stop Ar number
 Set the stop bit for a serial device
 .Ar location .
+.It Ic udp Ar string Brq ...
+Create a
+.Ar device
+which listens for user datagram protocol packets.
 
 .El
 .Sh FILES
@@ -193,6 +204,14 @@ device "serial_device" {
 device "ipaddr_device" {
 	ipaddr "10.0.0.1" {
 		connect on port 8080
+		listen on port 50010
+		password "password"
+	}
+}
+
+device "udp_device" {
+	udp "my_name" {
+		receive on port 8095
 		listen on port 50010
 		password "password"
 	}

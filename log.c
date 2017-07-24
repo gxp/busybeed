@@ -51,15 +51,12 @@ __dead void fatalx(const char *, ...)
 void
 log_init(int n_debug, int facility)
 {
-	extern char	*__progname;
-
 	debug = n_debug;
 	verbose = n_debug;
-	log_procinit(__progname);
+	log_procinit(getprogname());
 
 	if (!debug)
-		openlog(__progname, LOG_PID | LOG_NDELAY, facility);
-
+		openlog(getprogname(), LOG_PID | LOG_NDELAY, facility);
 	tzset();
 }
 

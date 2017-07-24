@@ -66,12 +66,10 @@ sighdlr(int sig)
 __dead void
 usage(void)
 {
-	extern char *__progname;
-
-	if (strcmp(__progname, "busybctl") == 0)
+	if (strcmp(getprogname(), "busybctl") == 0)
 		fprintf(stderr, "usage: busybctl -n name -d /dev/device etc\n");
 	else
-		fprintf(stderr, "usage: %s [-dv]\n", __progname);
+		fprintf(stderr, "usage: %s [-dv]\n", getprogname());
 	exit(1);
 }
 
@@ -90,7 +88,7 @@ main(int argc, char *argv[])
 	pid_t				 chld_pid = 0, chld_chk;
 	int				 status, fd_ctl, ch, bbdm = 0;
 
-	if (strcmp(__progname, "busybctl") == 0)
+	if (strcmp(getprogname(), "busybctl") == 0)
 		ctl_main(argc, argv);
 
 	memset(&lconf, 0, sizeof(lconf));

@@ -4,7 +4,7 @@ $subscribe = "~~~subscribe{{name,\"metar_slp\"},{devices{device{\"data_esp\",\"P
 $host = "10.0.100.5";
 $port = "50000";
 
-$url = "ftp://tgftp.nws.noaa.gov/data/observations/metar/stations/KTWF.TXT";
+$url = "ftp://tgftp.nws.noaa.gov/data/observations/metar/stations/KPTV.TXT";
 $ch = curl_init();
 curl_setopt($ch, CURLOPT_URL, $url);
 curl_setopt($ch, CURLOPT_HEADER, 0);

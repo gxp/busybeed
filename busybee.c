@@ -47,6 +47,8 @@ int				 max_clients = 1, max_subscriptions = 1;
 int				 ph = -1;
 int				 j, c_nfds, nfds, pfdcnt, clients_start,
 				     wdcheck;
+socklen_t			*addrlen;
+struct sockaddr			*addr;
 struct imsgbuf			*ibuf_main;
 struct ctl_conns		 ctl_conns;
 extern int			 c_retry;
@@ -338,7 +340,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	sclients =			 x_clients;
 
 	int				 pi = 0, i, pollsocks;
-	int				 rcv, c_conn = 0;
+	int				 rcv, mytype, c_conn = 0;
 	int				 n_client = -1, is_client = 0;
 
 	clients_start =			 (sdevs->count + socks->count);
@@ -354,11 +356,14 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	/* load up fds */
 	TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry) {
 		pfds[pi].fd =		 lsocks->listener;
-		pfds[pi++].events =	 POLLIN;
+		pfds[pi].events =	 POLLIN;
+		pfds[pi++].revents =	 0;
+		
 	}
 	TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
 		pfds[pi].fd =		 ldevs->fd;
-		pfds[pi++].events =	 POLLIN;
+		pfds[pi].events =	 POLLIN;
+		pfds[pi++].revents =	 0;
 	}
 	for (i = pi; i < pfdcnt; i++)
 		pfds[i].fd = 0;
@@ -408,7 +413,9 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	if ((ibuf_main = malloc(sizeof(struct imsgbuf))) == NULL)
 		fatal(NULL);
 	imsg_init(ibuf_main, pipe_prnt[1]);
-	
+
+	// maybe do a loop read on all pfds to clear them here to begin with
+
 	while (bb_quit == 0) {
 		c_nfds = nfds;
 		/* start polling */
@@ -419,7 +426,6 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 		for (i = 0; i < c_nfds; i++) {
 			if (pfds[i].revents == 0)
 				continue;
-
 			/* only check sockets for client connections */
 			TAILQ_FOREACH(lsocks, &s_socks->s_sockets, entry) {
 				if (pfds[i].fd == lsocks->listener) {
@@ -475,8 +481,36 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 				c_conn = 0;
 				do {
 					memset(buff, 0, sizeof(buff));
-					rcv = read(pfds[i].fd, buff,
-					    sizeof(buff));
+					TAILQ_FOREACH(ldevs, &s_devs->s_devices,
+					    entry) {
+						if (ldevs->fd == pfds[i].fd) {
+							mytype = ldevs->type;
+							break;
+						}
+					}
+					switch(mytype) {
+					case TCP:
+						rcv = recv(pfds[i].fd, buff,
+						    sizeof(buff), 0);
+						break;
+					case UDP:
+						rcv = recvfrom(pfds[i].fd, buff,
+						    sizeof(buff), 0, addr,
+						    addrlen);
+						/*
+						 * nmap to udp triggers rcv to
+						 * be 0, so, if local listener,
+						 * we don't want it to close.
+						 */
+						if (rcv == 0 && i <
+						    clients_start)
+							rcv = 1;
+						break;
+					case FD:
+						rcv = read(pfds[i].fd, buff,
+						    sizeof(buff));
+						break;
+					}
 					if (rcv < 0) {
 						if (errno != EWOULDBLOCK)
 							log_warn("recv() "	

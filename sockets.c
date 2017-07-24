@@ -102,9 +102,10 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs,
 			    sizeof(c_socket->port)) == '\0')
 			fatalx("port copy failure");
 
-		if (defp == 0)
+		if (defp == 0) {
 			sock_r = c_socket->listener = create_socket(ldevs->port,
-			    iface);
+			    iface, TCP);
+		}
 		else
 			sock_r = 0;
 
@@ -178,17 +179,28 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs,
 }
 
 int
-create_socket(char *port, char *b_iface)
+create_socket(char *port, char *b_iface, int type)
 {
 	int 			 sock_fd;
 	int			 gai, o_val = 1;
-	struct addrinfo addr_hints, *addr_res, *loop_res;
+	struct addrinfo		 addr_hints, *addr_res, *loop_res;
 
 	memset(&addr_hints, 0, sizeof(addr_hints));
-	/* accept any family, use streams, and make passive */
+
 	addr_hints.ai_family = AF_UNSPEC;
-	addr_hints.ai_socktype = SOCK_STREAM;
-	addr_hints.ai_flags |= AI_PASSIVE;
+
+	switch (type) {
+	case UDP:
+		addr_hints.ai_socktype = SOCK_DGRAM;
+		addr_hints.ai_flags=AI_PASSIVE|AI_ADDRCONFIG;
+		addr_hints.ai_protocol = 0;
+		break;
+	case TCP:
+	default:
+		addr_hints.ai_socktype = SOCK_STREAM;
+		addr_hints.ai_flags |= AI_PASSIVE;
+		break;
+	}
 
 	if ((gai = getaddrinfo(b_iface, port, &addr_hints, &addr_res)) != 0) {
 		fatalx("getaddrinfo failed: %s", gai_strerror(gai));
@@ -230,9 +242,11 @@ create_socket(char *port, char *b_iface)
 
 	freeaddrinfo(addr_res);
 
-	if (listen(sock_fd, SOMAXCONN) == -1) {
-		fatalx("unable to listen on socket");
-		return -1;
+	if (type == TCP) {
+		if (listen(sock_fd, SOMAXCONN) == -1) {
+			fatal("unable to listen on socket");
+			return -1;
+		}
 	}
 
 	return sock_fd;

@@ -38,7 +38,13 @@ open_devices(struct s_conf *x_devs, struct s_device *x_dev,
 	int				 baudrate = 0, stop = 0, mult_d = 1;
 
 	struct termios			 s_opts;
-	struct s_device			 *ldev;
+	struct s_device			*ldev;
+
+
+	char				*port;
+
+	if ((port = malloc(sizeof(char))) == NULL)
+		fatal("malloc char");
 
 	ldev = x_dev;
 	s_devs = x_devs;
@@ -199,6 +205,7 @@ open_devices(struct s_conf *x_devs, struct s_device *x_dev,
 				/* Set the new options for the port */
 				tcsetattr(fd, TCSANOW, &s_opts);
 				cs_device->fd = fd;
+				cs_device->type = FD;
 			}
 		}
 
@@ -212,6 +219,15 @@ open_devices(struct s_conf *x_devs, struct s_device *x_dev,
 			} else
 				/* non persistent device */
 				cs_device->fd = -1;
+			cs_device->type = TCP;
+		}
+		if (devs->udp != '\0') {
+			/* create fd for udp instead of serial device */
+			snprintf(port, sizeof(port), "%d", devs->cport);
+			if ((cs_device->fd = create_socket(port,
+			    devs->bind_interface, UDP)) == -1)
+				exit(1);
+			cs_device->type = UDP;
 		}
 		if (cs_device->fd == '\0')
 			fatalx("something went wrong setting fd");

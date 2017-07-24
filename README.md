@@ -35,7 +35,7 @@ rcctl start busybeed
 ---------------------------------------------------
 Man Pages
 ---------------------------------------------------
-
+```
 BUSYBEED(8)                 System Manager's Manual                BUSYBEED(8)
 
 NAME
@@ -106,9 +106,9 @@ HISTORY
      The busybeed program first began development on OpenBSD 5.9.
 
 OpenBSD 6.1                    January 26, 2017                    OpenBSD 6.1
-
+```
 ---------------------------------------------------
-
+```
 BUSYBEED.CONF(5)              File Formats Manual             BUSYBEED.CONF(5)
 
 NAME
@@ -299,9 +299,9 @@ CAVEATS
      busybeed(8) None yet.
 
 OpenBSD 6.1                    January 26, 2017                    OpenBSD 6.1
-
+```
 ---------------------------------------------------
-
+```
 BUSYBCTL(1)                 General Commands Manual                BUSYBCTL(1)
 
 NAME
@@ -314,3 +314,4 @@ DESCRIPTION
      The busybctl program is a control utility for the busybeed daemon.
 
 OpenBSD 6.1              $Mdocdate: January 26, 2016 $             OpenBSD 6.1
+```

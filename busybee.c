@@ -414,8 +414,6 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 		fatal(NULL);
 	imsg_init(ibuf_main, pipe_prnt[1]);
 
-	// maybe do a loop read on all pfds to clear them here to begin with
-
 	while (bb_quit == 0) {
 		c_nfds = nfds;
 		/* start polling */

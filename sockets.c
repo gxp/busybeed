@@ -257,10 +257,11 @@ open_client_socket(char *ip_addr, int xport)
 {
 	int				 client_fd, cport, nb;
 	char				*sockaddr;
-	
+
 	struct hostent			*server;
 	struct sockaddr_in		 servaddr;
-	
+
+	nb = 0;
 	sockaddr = ip_addr;
 	cport = xport;
 	client_fd = socket(AF_INET, SOCK_STREAM, 0);

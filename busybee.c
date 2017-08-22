@@ -340,13 +340,17 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	sclients =			 x_clients;
 
 	int				 pi = 0, i, pollsocks;
-	int				 rcv, mytype, c_conn = 0;
+	int				 rcv = 0, mytype, c_conn = 0;
 	int				 n_client = -1, is_client = 0;
 
 	clients_start =			 (sdevs->count + socks->count);
 	nfds =				 clients_start;
 	pfdcnt =			 (sdevs->count + socks->count +
 					      max_clients);
+
+	memset(sclients, 0, sizeof(*sclients));
+	if ((wddata = malloc(sizeof(struct devwd_timer_data))) == NULL)
+		fatal("malloc wddata");
 
 	if ((pfds = calloc(pfdcnt, sizeof(struct pollfd))) == NULL)
 		fatal("calloc pfds");
@@ -358,7 +362,6 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 		pfds[pi].fd =		 lsocks->listener;
 		pfds[pi].events =	 POLLIN;
 		pfds[pi++].revents =	 0;
-		
 	}
 	TAILQ_FOREACH(ldevs, &s_devs->s_devices, entry) {
 		pfds[pi].fd =		 ldevs->fd;
@@ -368,7 +371,6 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	for (i = pi; i < pfdcnt; i++)
 		pfds[i].fd = 0;
 
-	memset(sclients, 0, sizeof(sclients));
 	if((cdata = (struct client_timer_data *) calloc(1, sizeof(*cdata))) ==
 	    NULL)
 		fatal("calloc cdata");
@@ -420,7 +422,6 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 		pollsocks = poll(pfds, nfds, 1000);
 		if (pollsocks == -1)
 			fatal("poll() failed");
-
 		for (i = 0; i < c_nfds; i++) {
 			if (pfds[i].revents == 0)
 				continue;
@@ -479,11 +480,12 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 				c_conn = 0;
 				do {
 					memset(buff, 0, sizeof(buff));
+					mytype = 0;
 					TAILQ_FOREACH(ldevs, &s_devs->s_devices,
 					    entry) {
 						if (ldevs->fd == pfds[i].fd) {
 							mytype = ldevs->type;
-							break;
+							//break;
 						}
 					}
 					switch(mytype) {
@@ -500,7 +502,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 						 * be 0, so, if local listener,
 						 * we don't want it to close.
 						 */
-						if (rcv == 0 && i <
+						if (rcv == 0 && i < 
 						    clients_start)
 							rcv = 1;
 						break;
@@ -532,7 +534,6 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 							    "creation failed");
 						break;
 					}
-
 					ph = packet_handler(sclients, pfds,
 					    buff, i, rcv, sdevs);
 

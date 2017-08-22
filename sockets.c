@@ -1,4 +1,4 @@
-/* $OpenBSD: sockets.c v.1.01 2016/11/20 14:59:17 baseprime Exp $ */
+/* $OpenBSD: sockets.c v.1.02 2017/08/22 15:31:00 baseprime Exp $ */
 /*
  * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.net>
  *

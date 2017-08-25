@@ -1,5 +1,4 @@
 /*	$OpenBSD: log.c,v 1.13 2015/12/19 17:55:29 reyk Exp $	*/
-
 /*
  * Copyright (c) 2003, 2004 Henning Brauer <henning@openbsd.org>
  *
@@ -47,47 +46,39 @@ __dead void fatal(const char *, ...)
 	    __attribute__((__format__ (printf, 1, 2)));
 __dead void fatalx(const char *, ...)
 	    __attribute__((__format__ (printf, 1, 2)));
-
 void
 log_init(int n_debug, int facility)
 {
 	debug = n_debug;
 	verbose = n_debug;
 	log_procinit(getprogname());
-
 	if (!debug)
 		openlog(getprogname(), LOG_PID | LOG_NDELAY, facility);
 	tzset();
 }
-
 void
 log_procinit(const char *procname)
 {
 	if (procname != NULL)
 		log_procname = procname;
 }
-
 void
 log_verbose(int v)
 {
 	verbose = v;
 }
-
 void
 logit(int pri, const char *fmt, ...)
 {
 	va_list	ap;
-
 	va_start(ap, fmt);
 	vlog(pri, fmt, ap);
 	va_end(ap);
 }
-
 void
 vlog(int pri, const char *fmt, va_list ap)
 {
 	char	*nfmt;
-
 	if (debug) {
 		/* best effort in out of mem situations */
 		if (asprintf(&nfmt, "%s\n", fmt) == -1) {
@@ -101,20 +92,16 @@ vlog(int pri, const char *fmt, va_list ap)
 	} else
 		vsyslog(pri, fmt, ap);
 }
-
-
 void
 log_warn(const char *emsg, ...)
 {
 	char	*nfmt;
 	va_list	 ap;
-
 	/* best effort to even work in out of memory situations */
 	if (emsg == NULL)
 		logit(LOG_CRIT, "%s", strerror(errno));
 	else {
 		va_start(ap, emsg);
-
 		if (asprintf(&nfmt, "%s: %s", emsg, strerror(errno)) == -1) {
 			/* we tried it... */
 			vlog(LOG_CRIT, emsg, ap);
@@ -126,45 +113,37 @@ log_warn(const char *emsg, ...)
 		va_end(ap);
 	}
 }
-
 void
 log_warnx(const char *emsg, ...)
 {
 	va_list	 ap;
-
 	va_start(ap, emsg);
 	vlog(LOG_CRIT, emsg, ap);
 	va_end(ap);
 }
-
 void
 log_info(const char *emsg, ...)
 {
 	va_list	 ap;
-
 	va_start(ap, emsg);
 	vlog(LOG_INFO, emsg, ap);
 	va_end(ap);
 }
-
 void
 log_debug(const char *emsg, ...)
 {
 	va_list	 ap;
-
 	if (verbose > 1) {
 		va_start(ap, emsg);
 		vlog(LOG_DEBUG, emsg, ap);
 		va_end(ap);
 	}
 }
-
 static void
 vfatal(const char *emsg, va_list ap)
 {
 	static char	s[BUFSIZ];
 	const char	*sep;
-
 	if (emsg != NULL) {
 		(void)vsnprintf(s, sizeof(s), emsg, ap);
 		sep = ": ";
@@ -178,23 +157,19 @@ vfatal(const char *emsg, va_list ap)
 	else
 		logit(LOG_CRIT, "%s%s%s", log_procname, sep, s);
 }
-
 void
 fatal(const char *emsg, ...)
 {
 	va_list	ap;
-
 	va_start(ap, emsg);
 	vfatal(emsg, ap);
 	va_end(ap);
 	exit(1);
 }
-
 void
 fatalx(const char *emsg, ...)
 {
 	va_list	ap;
-
 	errno = 0;
 	va_start(ap, emsg);
 	vfatal(emsg, ap);

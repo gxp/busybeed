@@ -1,4 +1,4 @@
-/* $OpenBSD: serial.c v.1.01 2016/11/20 14:59:17 baseprime Exp $ */
+/* $OpenBSD: serial.c v.1.02 2017/08/25 10:21:00 baseprime Exp $ */
 /*
  * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.net>
  *
@@ -29,35 +29,28 @@
 #include "busybeed.h"
 
 struct s_conf			*s_devs;
-
 int
 open_devices(struct s_conf *x_devs, struct s_device *x_dev,
     struct sock_conf *socks)
 {
 	int				 fd;
-	int				 baudrate = 0, stop = 0, mult_d = 1;
-
+	int				 baudrate, stop, mult_d;
 	struct termios			 s_opts;
 	struct s_device			*ldev;
-
-
+	struct device			*devs;
 	char				*port;
-
 	if ((port = malloc(sizeof(char))) == NULL)
 		fatal("malloc char");
-
+	baudrate = 0;
+	stop = 0;
+	mult_d = 1;
 	ldev = x_dev;
 	s_devs = x_devs;
 	if (ldev != '\0')
 		mult_d = 0;
-
 	if (mult_d)
 		TAILQ_INIT(&s_devs->s_devices);
-
-	struct device			*devs;
-
 	TAILQ_FOREACH(devs, &conf->devices, entry) {
-
 		if (mult_d)
 			cs_device = new_s_device(devs->name);
 		else {
@@ -208,7 +201,6 @@ open_devices(struct s_conf *x_devs, struct s_device *x_dev,
 				cs_device->type = FD;
 			}
 		}
-
 		if (devs->ipaddr != '\0') {
 			/* create fd for ipaddr instead of serial device */
 			if (devs->persistent == 1) {
@@ -216,8 +208,7 @@ open_devices(struct s_conf *x_devs, struct s_device *x_dev,
 				if ((cs_device->fd = open_client_socket(
 				    devs->ipaddr, devs->cport)) == -1)
 					exit(1);
-			} else
-				/* non persistent device */
+			} else /* non persistent device */
 				cs_device->fd = -1;
 			cs_device->type = TCP;
 		}
@@ -231,18 +222,15 @@ open_devices(struct s_conf *x_devs, struct s_device *x_dev,
 		}
 		if (cs_device->fd == '\0')
 			fatalx("something went wrong setting fd");
-
-		cs_device->password =		 devs->password;
-		cs_device->location =		 devs->devicelocation;
-		cs_device->ipaddr =		 devs->ipaddr;
-		cs_device->cport =		 devs->cport;
-		cs_device->max_clients =	 devs->max_clients;
+		cs_device->password = devs->password;
+		cs_device->location = devs->devicelocation;
+		cs_device->ipaddr = devs->ipaddr;
+		cs_device->cport = devs->cport;
+		cs_device->max_clients = devs->max_clients;
 		if (mult_d)
-			cs_device->connected =		 1;
-
+			cs_device->connected = 1;
 		strlcpy(cs_device->port, devs->port, sizeof(cs_device->port));
-		cs_device->bind_interface =	 devs->bind_interface;
-
+		cs_device->bind_interface = devs->bind_interface;
 		if (mult_d) {
 			s_devs->count++;
 			TAILQ_INSERT_TAIL(&s_devs->s_devices, cs_device, entry);
@@ -254,17 +242,13 @@ open_devices(struct s_conf *x_devs, struct s_device *x_dev,
 	}
 	return 0;
 }
-
 struct s_device *
 new_s_device(char *name)
 {
 	struct s_device	*dev;
-
 	if ((dev = calloc(1, sizeof(*dev))) == NULL)
 		fatalx("no s_dev calloc");
-
 	if ((dev->name = strdup(name)) == NULL)
 		fatalx("no s_dev name");
-
 	return (dev);
 };

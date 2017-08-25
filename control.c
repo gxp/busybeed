@@ -1,5 +1,4 @@
-/*	$OpenBSD: control.c,v 1.01 2016/12/06 17:12:22 baseprime Exp $ */
-
+/*	$OpenBSD: control.c,v 1.02 2017/08/25 10:21:00 baseprime Exp $ */
 /*
  * Copyright (c) 2003, 2004 Henning Brauer <henning@openbsd.org>
  * Copyright (c) 2012 Mike Miller <mmiller@mgm51.com>
@@ -42,25 +41,21 @@ control_init(char *path)
 	struct sockaddr_un	 sa;
 	int			 fd;
 	mode_t			 old_umask;
-	
 	if ((fd = socket(AF_UNIX, SOCK_STREAM, 0)) == -1) {
 		log_warn("control_init: socket");
 		return (-1);
 	}
-	
 	memset(&sa, 0, sizeof(sa));
 	sa.sun_family = AF_UNIX;
 	if (strlcpy(sa.sun_path, path, sizeof(sa.sun_path)) >=
 		sizeof(sa.sun_path))
 		errx(1, "ctl socket name too long");
-	
 	if (unlink(path) == -1)
 		if (errno != ENOENT) {
 			log_warn("control_init: unlink %s", path);
 			close(fd);
 			return (-1);
 		}
-		
 	old_umask = umask(S_IXUSR|S_IXGRP|S_IWOTH|S_IROTH|S_IXOTH);
 	if (bind(fd, (struct sockaddr *)&sa, sizeof(sa)) == -1) {
 		log_warn("control_init: bind: %s", path);
@@ -69,19 +64,15 @@ control_init(char *path)
 		return (-1);
 	}
 	umask(old_umask);
-	
 	if (chmod(path, S_IRUSR|S_IWUSR|S_IRGRP|S_IWGRP) == -1) {
 		log_warn("control_init: chmod");
 		close(fd);
 		(void)unlink(path);
 		return (-1);
 	}
-
 	session_socket_blockmode(fd, BM_NONBLOCK);
-	
 	return (fd);
 }
-
 int
 control_listen(int fd)
 {
@@ -89,23 +80,19 @@ control_listen(int fd)
 		log_warn("control_listen: listen");
 		return (-1);
 	}
-	
 	return (0);
 }
-
 void
 control_shutdown(int fd)
 {
 	close(fd);
 }
-
 void
 control_cleanup(const char *path)
 {
 	if (path)
 		unlink(path);
 }
-
 int
 control_accept(int listenfd)
 {
@@ -113,7 +100,6 @@ control_accept(int listenfd)
 	socklen_t		 len;
 	struct sockaddr_un	 sa;
 	struct ctl_conn		*ctl_conn;
-
 	len = sizeof(sa);
 	if ((connfd = accept(listenfd, (struct sockaddr *)&sa, &len)) == -1) {
 		if (errno != EWOULDBLOCK && errno != EINTR)
@@ -121,56 +107,42 @@ control_accept(int listenfd)
 		return (0);
 	}
 	session_socket_blockmode(connfd, BM_NONBLOCK);
-
 	if ((ctl_conn = calloc(1, sizeof(struct ctl_conn))) == NULL) {
 		log_warn("control_accept");
 		close(connfd);
 		return (0);
 	}
-
 	imsg_init(&ctl_conn->ibuf, connfd);
-	
 	TAILQ_INSERT_TAIL(&ctl_conns, ctl_conn, entry);
-
 	return (1);
 }
-
 struct ctl_conn *
 control_connbyfd(int fd)
 {
 	struct ctl_conn	*c;
-	
 	for (c = TAILQ_FIRST(&ctl_conns); c != NULL && c->ibuf.fd != fd;
 	     c = TAILQ_NEXT(c, entry))
 	     ;	/* nothing */
-	     
 	     return (c);
 }
-
 int
 control_close(int fd)
 {
 	struct ctl_conn	*c;
-	
 	if ((c = control_connbyfd(fd)) == NULL) {
 		log_warn("control_close: fd %d: not found", fd);
 		return (0);
 	}
-	
 	msgbuf_clear(&c->ibuf.w);
 	TAILQ_REMOVE(&ctl_conns, c, entry);
-	
 	close(c->ibuf.fd);
 	free(c);
-	
 	return (1);
 }
-
 void
 session_socket_blockmode(int fd, enum blockmodes bm)
 {
 	int	flags;
-	
 	if ((flags = fcntl(fd, F_GETFL, 0)) == -1)
 		fatal("fcntl F_GETFL");
 	
@@ -182,7 +154,6 @@ session_socket_blockmode(int fd, enum blockmodes bm)
 	if ((flags = fcntl(fd, F_SETFL, flags)) == -1)
 		fatal("fcntl F_SETFL");
 }
-
 int
 control_dispatch_msg(struct pollfd *pfd, u_int *ctl_cnt)
 {
@@ -190,7 +161,6 @@ control_dispatch_msg(struct pollfd *pfd, u_int *ctl_cnt)
 	struct ctl_conn		*c;
 // 	int			 cnt;
 	ssize_t			 n;
-	
 	if ((c = control_connbyfd(pfd->fd)) == NULL) {
 		log_warn("control_dispatch_msg: fd %d: not found", pfd->fd);
 		return (0);
@@ -201,7 +171,6 @@ control_dispatch_msg(struct pollfd *pfd, u_int *ctl_cnt)
 			*ctl_cnt -= control_close(pfd->fd);
 			return (1);
 		}
-		
 	if (!(pfd->revents & POLLIN))
 		return (0);
 	

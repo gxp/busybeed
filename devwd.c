@@ -29,14 +29,12 @@ void
 *devwd(void *data)
 {
 	int (*t_fptr)(struct s_conf *, struct s_device *, struct sock_conf *);
-
 	struct devwd_timer_data		*wddata;
 	struct s_device			*ldevs;
-	int				 od, connd = 0;
-
+	int				 od, connd;
+	connd = 0;
 	wddata = data;
 	t_fptr = wddata->fptr;
-
 	while(*wddata->quit == 0) {
 		sleep(wddata->seconds);
 		TAILQ_FOREACH(ldevs, &wddata->s_devs->s_devices, entry) {

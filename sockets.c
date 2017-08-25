@@ -166,6 +166,7 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs, char *c_port)
 	}
 	return 0;
 }
+
 int
 create_socket(char *port, char *b_iface, int type)
 {
@@ -226,6 +227,7 @@ create_socket(char *port, char *b_iface, int type)
 	}
 	return sock_fd;
 }
+
 int
 open_client_socket(char *ip_addr, int xport)
 {
@@ -266,6 +268,7 @@ open_client_socket(char *ip_addr, int xport)
 	fcntl(client_fd, F_SETFL, nb);
 	return client_fd;
 }
+
 struct s_socket *
 new_socket(char *port)
 {
@@ -276,6 +279,7 @@ new_socket(char *port)
 		fatalx("no s_sock port");
 	return (sock);
 };
+
 char
 *get_ifaddrs(char *name)
 {

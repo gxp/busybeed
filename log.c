@@ -46,6 +46,7 @@ __dead void fatal(const char *, ...)
 	    __attribute__((__format__ (printf, 1, 2)));
 __dead void fatalx(const char *, ...)
 	    __attribute__((__format__ (printf, 1, 2)));
+
 void
 log_init(int n_debug, int facility)
 {
@@ -56,17 +57,20 @@ log_init(int n_debug, int facility)
 		openlog(getprogname(), LOG_PID | LOG_NDELAY, facility);
 	tzset();
 }
+
 void
 log_procinit(const char *procname)
 {
 	if (procname != NULL)
 		log_procname = procname;
 }
+
 void
 log_verbose(int v)
 {
 	verbose = v;
 }
+
 void
 logit(int pri, const char *fmt, ...)
 {
@@ -75,6 +79,7 @@ logit(int pri, const char *fmt, ...)
 	vlog(pri, fmt, ap);
 	va_end(ap);
 }
+
 void
 vlog(int pri, const char *fmt, va_list ap)
 {
@@ -92,6 +97,7 @@ vlog(int pri, const char *fmt, va_list ap)
 	} else
 		vsyslog(pri, fmt, ap);
 }
+
 void
 log_warn(const char *emsg, ...)
 {
@@ -113,6 +119,7 @@ log_warn(const char *emsg, ...)
 		va_end(ap);
 	}
 }
+
 void
 log_warnx(const char *emsg, ...)
 {
@@ -121,6 +128,7 @@ log_warnx(const char *emsg, ...)
 	vlog(LOG_CRIT, emsg, ap);
 	va_end(ap);
 }
+
 void
 log_info(const char *emsg, ...)
 {
@@ -129,6 +137,7 @@ log_info(const char *emsg, ...)
 	vlog(LOG_INFO, emsg, ap);
 	va_end(ap);
 }
+
 void
 log_debug(const char *emsg, ...)
 {
@@ -139,6 +148,7 @@ log_debug(const char *emsg, ...)
 		va_end(ap);
 	}
 }
+
 static void
 vfatal(const char *emsg, va_list ap)
 {
@@ -157,6 +167,7 @@ vfatal(const char *emsg, va_list ap)
 	else
 		logit(LOG_CRIT, "%s%s%s", log_procname, sep, s);
 }
+
 void
 fatal(const char *emsg, ...)
 {
@@ -166,6 +177,7 @@ fatal(const char *emsg, ...)
 	va_end(ap);
 	exit(1);
 }
+
 void
 fatalx(const char *emsg, ...)
 {

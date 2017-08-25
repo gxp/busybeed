@@ -63,6 +63,7 @@ bb_sighdlr(int sig)
 		break;
 	}
 }
+
 void
 write_packet(int blen, int wfd, char *name, u_char *x_buff,
     struct s_conf *x_devices)
@@ -96,6 +97,7 @@ write_packet(int blen, int wfd, char *name, u_char *x_buff,
 	if (close_it == 1)
 		shutdown(w_fd,2);
 }
+
 int
 packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
     int i, int x_rcv, struct s_conf *x_devices)
@@ -158,6 +160,7 @@ packet_handler(struct client_conf *cconf, struct pollfd *x_pfds, u_char *x_buff,
 	}
 	return 0;
 }
+
 void
 clean_devs(int subscriptions[max_subscriptions], struct s_conf *x_devices)
 {
@@ -172,6 +175,7 @@ clean_devs(int subscriptions[max_subscriptions], struct s_conf *x_devices)
 		}
 	}
 }
+
 void
 clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
     struct s_conf *x_devices)
@@ -291,6 +295,7 @@ clean_pfds(struct client_conf *cconf, struct pollfd *x_pfds, int i,
 		fatal("realloc tmppfds");
 	pfds = tmppfds;
 }
+
 pid_t
 busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
     struct s_conf *x_devices, struct sock_conf *x_socks,

@@ -60,6 +60,7 @@ sighdlr(int sig)
 		break;
 	}
 }
+
 __dead void
 usage(void)
 {
@@ -69,6 +70,7 @@ usage(void)
 		fprintf(stderr, "usage: %s [-dv]\n", getprogname());
 	exit(1);
 }
+
 int
 main(int argc, char *argv[])
 {
@@ -203,6 +205,7 @@ main(int argc, char *argv[])
 	log_info("busybeed terminating");
 	return 0;
 }
+
 void
 ctl_main(int argc, char *argv[])
 {

@@ -65,6 +65,7 @@ client_subscribe(struct client_conf *cconf, int pfd, unsigned char *x_buff)
 	parsedb = parse_buffer(xcconf, s_buff, pfd);
 	return parsedb;
 }
+
 void
 *run_client_timer(void *data)
 {
@@ -92,6 +93,7 @@ void
 	(void) (*t_fptr)(spfds, sclients);
 	return NULL;
 }
+
 void
 start_client_timer(struct client_timer_data *cdata)
 {
@@ -103,6 +105,7 @@ start_client_timer(struct client_timer_data *cdata)
 	if (tcheck)
 		fatalx("thread creation failed");
 }
+
 void
 test_client(struct pollfd *x_pfds, struct client_conf *cconf)
 {
@@ -127,6 +130,7 @@ test_client(struct pollfd *x_pfds, struct client_conf *cconf)
 			}
 	}
 }
+
 void
 do_subscribe(int mypfd, char *name, int devfd, struct client_conf *cconf)
 {
@@ -148,6 +152,7 @@ do_subscribe(int mypfd, char *name, int devfd, struct client_conf *cconf)
 		}
 	}
 }
+
 struct client *
 new_client(int pfd)
 {

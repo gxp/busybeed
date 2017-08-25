@@ -159,7 +159,8 @@ create_sockets(struct sock_conf *x_socks, struct s_conf *x_devs, char *c_port)
 				pfds[i].fd = listener;
 				pfds[i++].events = POLLIN;
 			}
-			log_info("device %s reconnection attempted", ldevs->name);
+			log_info("device %s reconnection attempted",
+			    ldevs->name);
 			break;
 		}
 	}

@@ -1,4 +1,4 @@
-/* $OpenBSD: busybeed.h v.1.01 2016/11/20 14:59:17 baseprime Exp $ */
+/* $OpenBSD: busybeed.h v.1.02 2017/08/25 10:21:00 baseprime Exp $ */
 /*
  * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.net>
  *
@@ -28,21 +28,14 @@
 #define CTLSOCKET	"/var/run/busybeed.sock"
 #define BUFFRSIZE	 1024
 #define DEFAULTRETRY	 30
-
 enum blockmodes {
 	BM_NORMAL,
 	BM_NONBLOCK
 };
-
-extern char			*__progname;
 extern int			 max_clients, max_subscriptions;
-
 /* prototypes */
-
 /* busybeed.c */
 extern struct busybeed_conf 	*conf;
-
-
 /* log.c */
 void	log_init(int, int);
 void	log_procinit(const char *);
@@ -63,12 +56,10 @@ __dead void fatal(const char *, ...)
 	    __attribute__((__format__ (printf, 1, 2)));
 __dead void fatalx(const char *, ...)
 	    __attribute__((__format__ (printf, 1, 2)));
-
 /* parse.y */
 #define DEFAULT_BAUD		 9600
 extern char			*bind_interface;
 struct device			*new_device(char *);
-
 struct device {
 	TAILQ_ENTRY(device)	 entry;
 	char			*name;
@@ -90,28 +81,21 @@ struct device {
 	int			 persistent;
 };
 struct device			*currentdevice;
-
 struct busybeed_conf {
 	TAILQ_HEAD(devices, device)	 devices;
 	int		        	 debug;
 	int		        	 verbose;
 };
-
 int				 parse_config(const char *,
 				     struct busybeed_conf *);
-
 /* serial.c */
 enum sock {
 	TCP,
 	UDP,
 	FD
 } stype;
-
 extern struct s_conf		*s_devs;
-
-
 struct s_device			*new_s_device(char *);
-
 struct s_device {
 	TAILQ_ENTRY(s_device)	 entry;
 	int			 fd;
@@ -131,40 +115,30 @@ struct s_device {
 	int			 type;
 };
 struct s_device			*cs_device;
-
-
 struct s_conf {
 	TAILQ_HEAD(s_devices, s_device)		 s_devices;
 	int					 count;
 };
-
 /* sockets.c */
-
 extern struct sock_conf		*s_socks;
 extern int			 create_sockets(struct sock_conf *,
 				     struct s_conf *, char *);
 extern char			*get_ifaddrs(char *);
-
 struct s_socket			*new_socket(char *);
-
 struct s_socket {
 	TAILQ_ENTRY(s_socket)	 entry;
 	char			 port[6];
 	int			 listener;
 };
-
 struct s_socket			*c_socket;
-
 struct sock_conf {
 	TAILQ_HEAD(s_sockets, s_socket)		 s_sockets;
 	int					 count;
 };
-
 extern int			 open_devices(struct s_conf *,
 				     struct s_device *, struct sock_conf *);
 int				 create_socket(char *, char *, int);
 int				 open_client_socket(char *, int);
-
 /* client.c */
 struct client {
 	TAILQ_ENTRY(client)	 entry;
@@ -178,16 +152,13 @@ struct client {
 	int			 subscriptions[];
 };
 struct client			*c_client;
-
 struct client_conf {
 	TAILQ_HEAD(clients, client)	 	clients;
 };
-
 int				 client_subscribe(struct client_conf *, int,
 				     u_char *);
 void				 test_client(struct pollfd *,
 				     struct client_conf *);
-
 struct client_timer_data {
 	int			 seconds;
 	void			 (*fptr)(struct pollfd *pfd,
@@ -196,13 +167,11 @@ struct client_timer_data {
 	struct pollfd		*pfd;
 	int			 c_pfd;
 };
-
 void				 start_client_timer(struct client_timer_data *);
 void				*run_client_timer(void *data);
 struct client			*new_client(int);
 void				 do_subscribe(int, char *, int,
 				     struct client_conf *);
-
 /* busybee.c */
 #define SUBTIME			 5
 void				 clean_devs(int[], struct s_conf *);
@@ -215,21 +184,17 @@ pid_t				 busybee_main(int[2], int,
 int				 packet_handler(struct client_conf *,
 				    struct pollfd *, u_char *, int, int,
 				    struct s_conf *);
-		/* parse.y member, called in buffer.c */
 int				 parse_buffer(struct client_conf *, u_char *,
-				     int);
+				     int); /* parse.y member */
 void				 write_packet(int, int, char *, u_char *,
 				     struct s_conf *);
 extern struct ctl_conns 	 ctl_conns;
-
 /* control.c */
 struct ctl_conn {
 	TAILQ_ENTRY(ctl_conn)	entry;
 	struct imsgbuf		ibuf;
 };
-
 TAILQ_HEAD(ctl_conns, ctl_conn)	;
-
 int			 	 control_init(char *);
 int			 	 control_listen(int);
 void			 	 control_shutdown(int);
@@ -239,10 +204,8 @@ void				 session_socket_blockmode(int, enum blockmodes);
 int				 control_close(int);
 struct ctl_conn			*control_connbyfd(int);
 int				 control_dispatch_msg(struct pollfd *, u_int *);
-
 /* devwd.c */
 void				*devwd(void *data);
-
 struct devwd_timer_data {
 	int			 seconds;
 	volatile sig_atomic_t	*quit;
@@ -251,5 +214,6 @@ struct devwd_timer_data {
 	struct s_device		*ldevs;
 	struct s_socket		*lsocks;
 	struct pollfd		*pfds;
-	int			 (*fptr)(struct s_conf *, struct s_device *, struct sock_conf *);
+	int			 (*fptr)(struct s_conf *, struct s_device *,
+				     struct sock_conf *);
 };

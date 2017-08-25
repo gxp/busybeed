@@ -1,4 +1,4 @@
-/* $OpenBSD: client.c v.1.01 2016/11/20 14:59:17 baseprime Exp $ */
+/* $OpenBSD: client.c v.1.02 2017/08/25 10:21:00 baseprime Exp $ */
 /*
  * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.net>
  *
@@ -35,7 +35,7 @@ int
 client_subscribe(struct client_conf *cconf, int pfd, unsigned char *x_buff)
 {
 	unsigned char			*s_buff;
-	int				 parsedb = 0;
+	int				 parsedb;
 	struct client_conf		*xcconf;
 	/*
 	 * A human readable packet is used for subscribing. The format is as
@@ -57,18 +57,14 @@ client_subscribe(struct client_conf *cconf, int pfd, unsigned char *x_buff)
 	 * 
 	 * If your packet is not accurate, it will fail.
 	 */
-
-	s_buff =			 x_buff;
-	xcconf =			 cconf;
-
+	parsedb = 0;
+	s_buff = x_buff;
+	xcconf = cconf;
 	/* strip tildes */
 	memmove(s_buff, s_buff+3, strlen(s_buff+3)+1);
-
 	parsedb = parse_buffer(xcconf, s_buff, pfd);
-
 	return parsedb;
 }
-
 void
 *run_client_timer(void *data)
 {
@@ -76,47 +72,37 @@ void
 	struct client			*sclient;
 	struct client_conf		*sclients;
 	struct client_timer_data	*cdata;
-
 	int				 seconds, c_pfd;
 	pthread_t			 me;
-
 	void (*t_fptr)(struct pollfd *, struct client_conf *);
-
-	me =				 pthread_self();
-	cdata =				 data;
-	spfds =				 cdata->pfd;
-	c_pfd =				 cdata->c_pfd;
-	sclients =			 cdata->cconf;
-	seconds =			 cdata->seconds;
-	t_fptr = 			 cdata->fptr;
-
+	me = pthread_self();
+	cdata = data;
+	spfds = cdata->pfd;
+	c_pfd = cdata->c_pfd;
+	sclients = cdata->cconf;
+	seconds = cdata->seconds;
+	t_fptr = cdata->fptr;
 	TAILQ_FOREACH(sclient, &sclients->clients, entry) {
 		if (sclient->pfd == c_pfd) {
 			sclient->me_thread = me;
 			break;
 		}
 	}
-
 	sleep(seconds);
-
 	(void) (*t_fptr)(spfds, sclients);
 	return NULL;
 }
-
 void
 start_client_timer(struct client_timer_data *cdata)
 {
 	struct client_timer_data	*cldata;
 	int				 tcheck;
-
-	cldata =			 cdata;
-
+	cldata = cdata;
 	tcheck = pthread_create(&client_check, NULL, run_client_timer,
 	    (void *) cldata);
 	if (tcheck)
 		fatalx("thread creation failed");
 }
-
 void
 test_client(struct pollfd *x_pfds, struct client_conf *cconf)
 {
@@ -125,13 +111,11 @@ test_client(struct pollfd *x_pfds, struct client_conf *cconf)
 	struct client_conf		*sclients;
 	int				 i;
 	pthread_t			 me;
-	
-	spfds =				 x_pfds;
-	sclients =			 cconf;
-	i =				 clients_start;
-	c_nfds =			 nfds;
-	me =				 pthread_self();
-
+	spfds = x_pfds;
+	sclients = cconf;
+	i = clients_start;
+	c_nfds = nfds;
+	me = pthread_self();
 	TAILQ_FOREACH(sclient, &sclients->clients, entry) {
 		if (sclient->subscribed < 1)
 			for (i = 0; i < c_nfds; i++) {
@@ -143,17 +127,14 @@ test_client(struct pollfd *x_pfds, struct client_conf *cconf)
 			}
 	}
 }
-
 void
 do_subscribe(int mypfd, char *name, int devfd, struct client_conf *cconf)
 {
 	struct client_conf		*sclients;
 	struct client			*sclient;
 	char				*sname;
-
-	sclients =			 cconf;
-	sname =				 name;
-
+	sclients = cconf;
+	sname = name;
 	TAILQ_FOREACH(sclient, &sclients->clients, entry) {
 		if (sclient->pfd == mypfd) {
 			sclient->subscribed++;
@@ -167,7 +148,6 @@ do_subscribe(int mypfd, char *name, int devfd, struct client_conf *cconf)
 		}
 	}
 }
-
 struct client *
 new_client(int pfd)
 {
@@ -175,13 +155,10 @@ new_client(int pfd)
 	if ((client = calloc(1, sizeof(*client) + (max_subscriptions *
 	    sizeof(int)))) == NULL)
 		fatalx("no client calloc");
-	
 	if ((client->pfd = pfd) < 1)
 		fatalx("no client pfd");
-
 	if( (client->subscriptions_name = (char **)malloc(max_subscriptions *
 	    sizeof(char *))) == NULL)
 		fatalx("no client malloc");
-
 	return (client);
 };

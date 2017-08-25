@@ -1,4 +1,4 @@
-/* $OpenBSD: parse.y v.1.01 2016/11/20 14:59:17 baseprime Exp $ */
+/* $OpenBSD: parse.y v.1.02 2017/08/25 10:21:00 baseprime Exp $ */
 /*
  * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.net>
  *
@@ -49,7 +49,6 @@ int		 popbuff(void);
 int		 yyparse(void);
 int		 yylex(void);
 int		 yy_flush_buffer(void); /* look up */
-
 int		 yyerror(const char *, ...)
     __attribute__((__format__ (printf, 1, 2)))
     __attribute__((__nonnull__ (1)));
@@ -58,17 +57,14 @@ int		 lookup(char *);
 int		 lgetc(int);
 int		 lungetc(int);
 int		 findeol(void);
-
 struct busybeed_conf		*conf;
 struct s_device			*ldevs;
 struct client_conf		*sclients;
 struct client			*sclient;
 int				 my_pfd, fail, subs;
-
 char				 default_port[6];
-char				*bind_interface = NULL;
+char				*bind_interface;
 char				*my_name, *not_my_name;
-
 extern int			 max_clients, max_subscriptions, verbose;
 int				 c_retry;
 const char			*parity[4] = {"none", "odd", "even", "space"};
@@ -79,8 +75,7 @@ const int			 s_parity = (sizeof(parity) /
 				     sizeof(const char *));
 const int			 c_bauds = (sizeof(baudrates) / 
 				     sizeof(const int));
-int				 p_c = 0, b_c = 0, sub_reqs = 0;
-
+int				 p_c, b_c, sub_reqs;
 typedef struct {
 	union {
 		int			 number;
@@ -371,7 +366,7 @@ device		: DEVICE STRING	 {
 			currentdevice->devicelocation =		 NULL;
 			currentdevice->ipaddr =			 NULL;
 			currentdevice->udp =			 NULL;
-			currentdevice->max_clients =		 max_clients;
+			currentdevice->max_clients =		 1;
 			strlcpy(currentdevice->port, default_port,
 				sizeof(currentdevice->port));
 			currentdevice->baud = 			 DEFAULT_BAUD;
@@ -427,18 +422,15 @@ optnl		: '\n' optnl
 nl		: '\n' optnl
 		;
 %%
-
 struct keywords {
 	const char	*k_name;
 	int		 k_val;
 };
-
 int
 yyerror(const char *fmt, ...)
 {
 	va_list		 ap;
 	char		*msg;
-
 	file->errors++;
 	va_start(ap, fmt);
 	if (vasprintf(&msg, fmt, ap) == -1)
@@ -448,15 +440,12 @@ yyerror(const char *fmt, ...)
 	free(msg);
 	return (0);
 }
-
 int
 kw_cmp(const void *k, const void *e)
 {
 	return (strcmp(k, ((const struct keywords *)e)->k_name));
 }
-
 int lookup(char *s) {
-
 	/* this has to be sorted always */
 	static const struct keywords keywords[] = {
 		{"baud",		BAUD},
@@ -490,28 +479,22 @@ int lookup(char *s) {
 		{"verbose",		VERBOSE}
 	};
 	const struct keywords	*p;
-
 	p = bsearch(s, keywords, sizeof(keywords)/sizeof(keywords[0]),
 	    sizeof(keywords[0]), kw_cmp);
-
 	if (p)
 		return (p->k_val);
 	else
 		return (STRING);
 }
-
 #define MAXPUSHBACK	128
-
 u_char	*parsebuf;
 int	 parseindex;
 u_char	 pushback_buffer[MAXPUSHBACK];
 int	 pushback_index = 0;
-
 int
 lgetc(int quotec)
 {
 	int		c, next;
-
 	if (parsebuf) {
 		/* Read character from the parsebuffer instead of file input */
 		if (parseindex >= 0) {
@@ -522,10 +505,8 @@ lgetc(int quotec)
 		} else
 			parseindex++;
 	}
-
 	if (pushback_index)
 		return (pushback_buffer[--pushback_index]);
-
 	if (quotec) {
 		if (parseindex > 0) {
 			/* malformed packet */
@@ -542,7 +523,6 @@ lgetc(int quotec)
 		}
 		return (c);
 	}
-
 	if (parseindex == 0) {
 		while ((c = getc(file->stream)) == '\\') {
 			next = getc(file->stream);
@@ -554,7 +534,6 @@ lgetc(int quotec)
 			file->lineno++;
 		}
 	}
-
 	while (c == EOF) {
 		if (file == topfile || popfile() == EOF)
 			return (EOF);
@@ -563,7 +542,6 @@ lgetc(int quotec)
 	parseindex = 0;
 	return (c);
 }
-
 int
 lungetc(int c)
 {
@@ -579,14 +557,11 @@ lungetc(int c)
 	else
 		return (EOF);
 }
-
 int
 findeol(void)
 {
 	int	c;
-
 	parsebuf = NULL;
-
 	/* skip to either EOF or the first real EOL */
 	while (1) {
 		if (pushback_index)
@@ -602,7 +577,6 @@ findeol(void)
 	}
 	return (ERROR);
 }
-
 int
 yylex(void)
 {
@@ -610,16 +584,13 @@ yylex(void)
 	u_char	*p;
 	int	 quotec, next, c;
 	int	 token;
-
 	p = buf;
 	while ((c = lgetc(0)) == ' ' || c == '\t')
 		; /* nothing */
-
 	yylval.lineno = file->lineno;
 	if (c == '#')
 		while ((c = lgetc(0)) != '\n' && c != EOF)
 			; /* nothing */
-
 	switch (c) {
 	case '\'':
 	case '"':
@@ -658,10 +629,8 @@ yylex(void)
 			fatal("yylex: strdup");
 		return (STRING);
 	}
-
 #define allowed_to_end_number(x) \
 	(isspace(x) || x == ')' || x ==',' || x == '/' || x == '}' || x == '=')
-
 	if (c == '-' || isdigit(c)) {
 		do {
 			*p++ = c;
@@ -694,13 +663,11 @@ nodigits:
 				return (c);
 		}
 	}
-
 #define allowed_in_string(x) \
 	(isalnum(x) || (ispunct(x) && x != '(' && x != ')' && \
 	x != '{' && x != '}' && x != '<' && x != '>' && \
 	x != '!' && x != '=' && x != '/' && x != '#' && \
 	x != ','))
-
 	if (isalnum(c) || c == ':' || c == '_' || c == '*') {
 		do {
 			*p++ = c;
@@ -724,12 +691,10 @@ nodigits:
 		return (0);
 	return (c);
 }
-
 struct file *
 pushfile(const char *name)
 {
 	struct file	*nfile;
-
 	if ((nfile = calloc(1, sizeof(struct file))) == NULL) {
 		log_warn("malloc");
 		return (NULL);
@@ -749,7 +714,6 @@ pushfile(const char *name)
 	TAILQ_INSERT_TAIL(&files, nfile, entry);
 	return (nfile);
 }
-
 struct file *
 pushbuff(u_char *xbuff)
 {
@@ -773,12 +737,10 @@ pushbuff(u_char *xbuff)
 	TAILQ_INSERT_TAIL(&files, bfile, entry);
 	return (bfile);
 }
-
 int
 popfile(void)
 {
 	struct file	*prev;
-
 	if ((prev = TAILQ_PREV(file, files, entry)) != NULL)
 		prev->errors += file->errors;
 
@@ -789,76 +751,58 @@ popfile(void)
 	file = prev;
 	return (file ? 0 : EOF);
 }
-
 int
 popbuff(void)
 {
 	struct file	*prev;
-
 	if ((prev = TAILQ_PREV(file, files, entry)) != NULL)
 		prev->errors += file->errors;
-
 	TAILQ_REMOVE(&files, file, entry);
-
 	free(file);
 	file = prev;
 	return (file ? 0 : EOF);
 }
-
 int
 parse_config(const char *filename, struct busybeed_conf *xconf)
 {
-	
-	int			 errors = 0;
-	conf =			 xconf;
-	conf->verbose = 	 verbose;
-
+	int		 errors;
+	conf = xconf;
+	conf->verbose =  verbose;
+	errors = 0;
+	bind_interface = NULL;
+	max_clients = 1;
+	max_subscriptions = 1;
 	TAILQ_INIT(&conf->devices);
-
 	if ((file = pushfile(filename)) == NULL)
 		return (-1);
-
 	topfile = file;
-
 	yyparse();
-
 	errors = file->errors;
 	popfile();
-
 	return (errors ? -1 : 0);
 }
-
 int
 parse_buffer(struct client_conf *cconf, u_char *xbuff, int pfd)
 {
 	my_pfd =		 pfd;
 	sclients =		 cconf;
-
-	int				 errors = 0;
+	int			 errors;
+	errors = 0;
 	if ((file = pushbuff(xbuff)) == NULL)
 		return (-1);
-
 	topfile = file;
-
 	yyparse();
-
 	errors = file->errors;
-	
 	popbuff();
-
 	return (errors ? -1 : 0);
 }
-
 struct device *
 new_device(char *name)
 {
 	struct device	*dev;
-	
 	if ((dev = calloc(1, sizeof(*dev))) == NULL)
 		fatalx("no dev calloc");
-	
 	if ((dev->name = strdup(name)) == NULL)
 		fatalx("no dev name");
-	
 	return (dev);
 };

@@ -42,21 +42,21 @@ static struct file {
 	int			 lineno;
 	int			 errors;
 } *file, *topfile;
-struct file	*pushfile(const char *);
-struct file	*pushbuff(u_char *);
-int		 popfile(void);
-int		 popbuff(void);
-int		 yyparse(void);
-int		 yylex(void);
-int		 yy_flush_buffer(void); /* look up */
-int		 yyerror(const char *, ...)
+struct file			*pushfile(const char *);
+struct file			*pushbuff(u_char *);
+int				 popfile(void);
+int				 popbuff(void);
+int				 yyparse(void);
+int				 yylex(void);
+int				 yy_flush_buffer(void); /* look up */
+int				 yyerror(const char *, ...)
     __attribute__((__format__ (printf, 1, 2)))
     __attribute__((__nonnull__ (1)));
-int		 kw_cmp(const void *, const void *);
-int		 lookup(char *);
-int		 lgetc(int);
-int		 lungetc(int);
-int		 findeol(void);
+int				 kw_cmp(const void *, const void *);
+int				 lookup(char *);
+int				 lgetc(int);
+int				 lungetc(int);
+int				 findeol(void);
 struct busybeed_conf		*conf;
 struct s_device			*ldevs;
 struct client_conf		*sclients;
@@ -78,8 +78,8 @@ const int			 c_bauds = (sizeof(baudrates) /
 int				 p_c, b_c, sub_reqs;
 typedef struct {
 	union {
-		int			 number;
-		char			*string;
+		int		 number;
+		char		*string;
 	} v;
 	int lineno;
 } YYSTYPE;
@@ -362,23 +362,23 @@ deviceopts1	:  LOCATION STRING {
 		} '{' optnl socopts2 '}'
 		;
 device		: DEVICE STRING	 {
-			currentdevice =				 new_device($2);
-			currentdevice->devicelocation =		 NULL;
-			currentdevice->ipaddr =			 NULL;
-			currentdevice->udp =			 NULL;
-			currentdevice->max_clients =		 1;
+			currentdevice = new_device($2);
+			currentdevice->devicelocation = NULL;
+			currentdevice->ipaddr =	NULL;
+			currentdevice->udp = NULL;
+			currentdevice->max_clients = 1;
 			strlcpy(currentdevice->port, default_port,
 				sizeof(currentdevice->port));
-			currentdevice->baud = 			 DEFAULT_BAUD;
-			currentdevice->bind_interface =		 bind_interface;
-			currentdevice->cport =			 -1;
-			currentdevice->databits =		 -1;
-			currentdevice->parity =			 NULL;
-			currentdevice->stopbits =		 -1;
-			currentdevice->hwctrl =			 -1;
-			currentdevice->swctrl =			 -1;
-			currentdevice->password =		 "";
-			currentdevice->persistent =		 1;
+			currentdevice->baud = DEFAULT_BAUD;
+			currentdevice->bind_interface = bind_interface;
+			currentdevice->cport = -1;
+			currentdevice->databits = -1;
+			currentdevice->parity = NULL;
+			currentdevice->stopbits = -1;
+			currentdevice->hwctrl = -1;
+			currentdevice->swctrl = -1;
+			currentdevice->password = "";
+			currentdevice->persistent = 1;
 		} '{' optnl deviceopts2 '}' {
 			if (currentdevice->ipaddr != '\0' &&
 				currentdevice->cport == -1) {
@@ -780,7 +780,7 @@ parse_config(const char *filename, struct busybeed_conf *xconf)
 {
 	int		 errors;
 	conf = xconf;
-	conf->verbose =  verbose;
+	conf->verbose = verbose;
 	bind_interface = NULL;
 	max_clients = 1;
 	max_subscriptions = 1;
@@ -797,9 +797,9 @@ parse_config(const char *filename, struct busybeed_conf *xconf)
 int
 parse_buffer(struct client_conf *cconf, u_char *xbuff, int pfd)
 {
-	my_pfd =		 pfd;
-	sclients =		 cconf;
-	int			 errors;
+	int		 errors;
+	my_pfd = pfd;
+	sclients = cconf;
 	if ((file = pushbuff(xbuff)) == NULL)
 		return (-1);
 	topfile = file;
@@ -819,4 +819,3 @@ new_device(char *name)
 		fatalx("no dev name");
 	return (dev);
 };
-

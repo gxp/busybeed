@@ -426,6 +426,7 @@ struct keywords {
 	const char	*k_name;
 	int		 k_val;
 };
+
 int
 yyerror(const char *fmt, ...)
 {
@@ -440,11 +441,13 @@ yyerror(const char *fmt, ...)
 	free(msg);
 	return (0);
 }
+
 int
 kw_cmp(const void *k, const void *e)
 {
 	return (strcmp(k, ((const struct keywords *)e)->k_name));
 }
+
 int lookup(char *s) {
 	/* this has to be sorted always */
 	static const struct keywords keywords[] = {
@@ -486,11 +489,13 @@ int lookup(char *s) {
 	else
 		return (STRING);
 }
+
 #define MAXPUSHBACK	128
 u_char	*parsebuf;
 int	 parseindex;
 u_char	 pushback_buffer[MAXPUSHBACK];
 int	 pushback_index = 0;
+
 int
 lgetc(int quotec)
 {
@@ -542,6 +547,7 @@ lgetc(int quotec)
 	parseindex = 0;
 	return (c);
 }
+
 int
 lungetc(int c)
 {
@@ -557,6 +563,7 @@ lungetc(int c)
 	else
 		return (EOF);
 }
+
 int
 findeol(void)
 {
@@ -577,6 +584,7 @@ findeol(void)
 	}
 	return (ERROR);
 }
+
 int
 yylex(void)
 {
@@ -691,6 +699,7 @@ nodigits:
 		return (0);
 	return (c);
 }
+
 struct file *
 pushfile(const char *name)
 {
@@ -714,6 +723,7 @@ pushfile(const char *name)
 	TAILQ_INSERT_TAIL(&files, nfile, entry);
 	return (nfile);
 }
+
 struct file *
 pushbuff(u_char *xbuff)
 {
@@ -737,6 +747,7 @@ pushbuff(u_char *xbuff)
 	TAILQ_INSERT_TAIL(&files, bfile, entry);
 	return (bfile);
 }
+
 int
 popfile(void)
 {
@@ -751,6 +762,7 @@ popfile(void)
 	file = prev;
 	return (file ? 0 : EOF);
 }
+
 int
 popbuff(void)
 {
@@ -762,13 +774,13 @@ popbuff(void)
 	file = prev;
 	return (file ? 0 : EOF);
 }
+
 int
 parse_config(const char *filename, struct busybeed_conf *xconf)
 {
 	int		 errors;
 	conf = xconf;
 	conf->verbose =  verbose;
-	errors = 0;
 	bind_interface = NULL;
 	max_clients = 1;
 	max_subscriptions = 1;
@@ -781,13 +793,13 @@ parse_config(const char *filename, struct busybeed_conf *xconf)
 	popfile();
 	return (errors ? -1 : 0);
 }
+
 int
 parse_buffer(struct client_conf *cconf, u_char *xbuff, int pfd)
 {
 	my_pfd =		 pfd;
 	sclients =		 cconf;
 	int			 errors;
-	errors = 0;
 	if ((file = pushbuff(xbuff)) == NULL)
 		return (-1);
 	topfile = file;
@@ -796,6 +808,7 @@ parse_buffer(struct client_conf *cconf, u_char *xbuff, int pfd)
 	popbuff();
 	return (errors ? -1 : 0);
 }
+
 struct device *
 new_device(char *name)
 {

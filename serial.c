@@ -242,6 +242,7 @@ open_devices(struct s_conf *x_devs, struct s_device *x_dev,
 	}
 	return 0;
 }
+
 struct s_device *
 new_s_device(char *name)
 {

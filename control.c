@@ -73,6 +73,7 @@ control_init(char *path)
 	session_socket_blockmode(fd, BM_NONBLOCK);
 	return (fd);
 }
+
 int
 control_listen(int fd)
 {
@@ -82,17 +83,20 @@ control_listen(int fd)
 	}
 	return (0);
 }
+
 void
 control_shutdown(int fd)
 {
 	close(fd);
 }
+
 void
 control_cleanup(const char *path)
 {
 	if (path)
 		unlink(path);
 }
+
 int
 control_accept(int listenfd)
 {
@@ -116,6 +120,7 @@ control_accept(int listenfd)
 	TAILQ_INSERT_TAIL(&ctl_conns, ctl_conn, entry);
 	return (1);
 }
+
 struct ctl_conn *
 control_connbyfd(int fd)
 {
@@ -125,6 +130,7 @@ control_connbyfd(int fd)
 	     ;	/* nothing */
 	     return (c);
 }
+
 int
 control_close(int fd)
 {
@@ -139,6 +145,7 @@ control_close(int fd)
 	free(c);
 	return (1);
 }
+
 void
 session_socket_blockmode(int fd, enum blockmodes bm)
 {
@@ -154,6 +161,7 @@ session_socket_blockmode(int fd, enum blockmodes bm)
 	if ((flags = fcntl(fd, F_SETFL, flags)) == -1)
 		fatal("fcntl F_SETFL");
 }
+
 int
 control_dispatch_msg(struct pollfd *pfd, u_int *ctl_cnt)
 {

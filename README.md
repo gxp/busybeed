@@ -105,7 +105,7 @@ STANDARDS
 HISTORY
      The busybeed program first began development on OpenBSD 5.9.
 
-OpenBSD 6.1                    January 26, 2017                    OpenBSD 6.1
+OpenBSD 6.2                    January 26, 2017                    OpenBSD 6.2
 ```
 ---------------------------------------------------
 ```
@@ -298,7 +298,7 @@ AUTHORS
 CAVEATS
      busybeed(8) None yet.
 
-OpenBSD 6.1                    January 26, 2017                    OpenBSD 6.1
+OpenBSD 6.2                    January 26, 2017                    OpenBSD 6.2
 ```
 ---------------------------------------------------
 ```
@@ -313,5 +313,5 @@ SYNOPSIS
 DESCRIPTION
      The busybctl program is a control utility for the busybeed daemon.
 
-OpenBSD 6.1              $Mdocdate: January 26, 2016 $             OpenBSD 6.1
+OpenBSD 6.2                    January 26, 2016                    OpenBSD 6.2
 ```

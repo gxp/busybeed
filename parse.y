@@ -819,3 +819,4 @@ new_device(char *name)
 		fatalx("no dev name");
 	return (dev);
 };
+

@@ -35,7 +35,6 @@ enum blockmodes {
 extern int			 max_clients, max_subscriptions;
 
 /* prototypes */
-
 /* busybeed.c */
 extern struct busybeed_conf 	*conf;
 

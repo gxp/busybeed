@@ -33,9 +33,11 @@ enum blockmodes {
 	BM_NONBLOCK
 };
 extern int			 max_clients, max_subscriptions;
+
 /* prototypes */
 /* busybeed.c */
 extern struct busybeed_conf 	*conf;
+
 /* log.c */
 void	log_init(int, int);
 void	log_procinit(const char *);
@@ -56,6 +58,7 @@ __dead void fatal(const char *, ...)
 	    __attribute__((__format__ (printf, 1, 2)));
 __dead void fatalx(const char *, ...)
 	    __attribute__((__format__ (printf, 1, 2)));
+
 /* parse.y */
 #define DEFAULT_BAUD		 9600
 extern char			*bind_interface;
@@ -88,6 +91,7 @@ struct busybeed_conf {
 };
 int				 parse_config(const char *,
 				     struct busybeed_conf *);
+
 /* serial.c */
 enum sock {
 	TCP,
@@ -119,6 +123,7 @@ struct s_conf {
 	TAILQ_HEAD(s_devices, s_device)		 s_devices;
 	int					 count;
 };
+
 /* sockets.c */
 extern struct sock_conf		*s_socks;
 extern int			 create_sockets(struct sock_conf *,
@@ -139,6 +144,7 @@ extern int			 open_devices(struct s_conf *,
 				     struct s_device *, struct sock_conf *);
 int				 create_socket(char *, char *, int);
 int				 open_client_socket(char *, int);
+
 /* client.c */
 struct client {
 	TAILQ_ENTRY(client)	 entry;
@@ -189,6 +195,7 @@ int				 parse_buffer(struct client_conf *, u_char *,
 void				 write_packet(int, int, char *, u_char *,
 				     struct s_conf *);
 extern struct ctl_conns 	 ctl_conns;
+
 /* control.c */
 struct ctl_conn {
 	TAILQ_ENTRY(ctl_conn)	entry;
@@ -204,6 +211,7 @@ void				 session_socket_blockmode(int, enum blockmodes);
 int				 control_close(int);
 struct ctl_conn			*control_connbyfd(int);
 int				 control_dispatch_msg(struct pollfd *, u_int *);
+
 /* devwd.c */
 void				*devwd(void *data);
 struct devwd_timer_data {

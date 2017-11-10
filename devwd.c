@@ -26,9 +26,12 @@
 
 #include "busybeed.h"
 
+extern pthread_mutex_t wdlock;
+
 void
 *devwd(void *data)
 {
+	pthread_mutex_lock(&wdlock);
 	int (*t_fptr)(struct s_conf *, struct s_device *, struct sock_conf *);
 	struct devwd_timer_data		*wddata;
 	struct s_device			*ldevs;
@@ -49,6 +52,7 @@ void
 		if (connd)
 			break;
 	}
+	pthread_mutex_unlock(&wdlock);
 	return NULL;
 }
 

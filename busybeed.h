@@ -213,6 +213,7 @@ struct ctl_conn			*control_connbyfd(int);
 int				 control_dispatch_msg(struct pollfd *, u_int *);
 
 /* devwd.c */
+pthread_mutex_t			 wdlock;
 void				*devwd(void *data);
 struct devwd_timer_data {
 	int			 seconds;

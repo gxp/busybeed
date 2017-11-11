@@ -1,4 +1,4 @@
-/* $OpenBSD: devwd.c v.1.00 2017/06/14 08:33:00 baseprime Exp $ */
+/* $OpenBSD: devwd.c v.1.01 2017/11/11 08:57:00 baseprime Exp $ */ 
 /*
  * Copyright (c) 2017 Tracey Emery <tracey@traceyemery.net>
  *
@@ -26,9 +26,12 @@
 
 #include "busybeed.h"
 
+extern pthread_mutex_t wdlock;
+
 void
 *devwd(void *data)
 {
+	pthread_mutex_lock(&wdlock);
 	int (*t_fptr)(struct s_conf *, struct s_device *, struct sock_conf *);
 	struct devwd_timer_data		*wddata;
 	struct s_device			*ldevs;
@@ -49,6 +52,7 @@ void
 		if (connd)
 			break;
 	}
+	pthread_mutex_unlock(&wdlock);
 	return NULL;
 }
 

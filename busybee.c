@@ -1,4 +1,4 @@
-/* $OpenBSD: busybee.c v.1.03 2017/08/25 10:21:00 baseprime Exp $ */
+/* $OpenBSD: busybee.c v.1.04 2017/11/11 08:57:00 baseprime Exp $ */
 /*
  * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.net>
  *
@@ -368,6 +368,8 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 	log_procinit("busybee");
 	close(pipe_prnt[0]);
 	// setup device watcher thread
+	if (pthread_mutex_init(&wdlock, NULL) != 0)
+		fatal("wdlock mutex");
 	wddata->seconds = c_retry;
 	wddata->quit = &bb_quit;
 	wddata->s_devs = sdevs;
@@ -519,6 +521,7 @@ busybee_main(int pipe_prnt[2], int fd_ctl, struct busybeed_conf *xconf,
 			close(pfds[i].fd);
 	}
 	pthread_join(devwd_thread, NULL);
+	pthread_mutex_destroy(&wdlock);
 	free(tmppfds);
 	free(pfds);
 	_exit(0);

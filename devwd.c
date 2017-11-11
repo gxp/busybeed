@@ -1,4 +1,4 @@
-/* $OpenBSD: devwd.c v.1.00 2017/06/14 08:33:00 baseprime Exp $ */
+/* $OpenBSD: devwd.c v.1.01 2017/11/11 08:57:00 baseprime Exp $ */ 
 /*
  * Copyright (c) 2017 Tracey Emery <tracey@traceyemery.net>
  *

@@ -1,4 +1,4 @@
-/* $OpenBSD: busybeed.h v.1.02 2017/08/25 10:21:00 baseprime Exp $ */
+/* $OpenBSD: busybeed.h v.1.03 2017/11/11 08:57:00 baseprime Exp $ */ 
 /*
  * Copyright (c) 2016 Tracey Emery <tracey@traceyemery.net>
  *

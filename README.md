@@ -9,7 +9,7 @@ including client limits.
 ### Installing
 
 busybeed installation
-
+THIS IS NOT HOW TO OFFICIALLY INSTALL IN OPENBSD. This is just how I do it on my own stuff, until I figure out porting/packaging.
 ```
 cd /usr/src/usr.sbin
 git clone https://github.com/spoollord/busybeed.git
